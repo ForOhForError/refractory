@@ -1,0 +1,82 @@
+
+import subprocess
+from twisted.internet import reactor
+from twisted.web import proxy
+
+from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketClientFactory,\
+    WebSocketServerProtocol, WebSocketClientProtocol
+
+from autobahn.twisted.resource import WebSocketResource
+
+import vtt_interaction
+import foundry_interaction
+
+def build_websocket_reverse_proxy_client_protocol(server_instance, override_client_payload=None):
+    class WebsocketReverseProxyClientProtocol(WebSocketClientProtocol):
+        def onOpen(self):
+            server_instance.set_client(self)
+        def onMessage(self, payload, isBinary):
+            if override_client_payload:
+                payload = override_client_payload(payload, isBinary=isBinary)
+            server_instance.sendMessage(payload, isBinary=isBinary)
+        def onClose(self, wasClean, code, reason):
+            server_instance.sendClose(code=1000,reason=reason)
+    return WebsocketReverseProxyClientProtocol
+
+def build_websocket_reverse_proxy_protocol(addr, host, port, override_server_payload=None, override_client_payload=None):
+    class WebsocketReverseProxyServerProtocol(WebSocketServerProtocol):
+        def onConnect(self, request):
+            self.params = request.params
+
+        def onOpen(self):
+            url = addr+"?"+"&".join([f"{key}={''.join(value)}" for (key, value) in self.params.items()])
+            factory = WebSocketClientFactory(url)
+            factory.protocol = build_websocket_reverse_proxy_client_protocol(self, override_client_payload=override_client_payload)
+            reactor.connectTCP(host, port, factory)
+
+        def set_client(self, client_instance):
+            self.client_instance = client_instance
+
+        def onMessage(self, payload, isBinary):
+            if hasattr(self, "client_instance") and self.client_instance:
+                if override_server_payload:
+                    payload = override_server_payload(payload, isBinary=isBinary)
+                self.client_instance.sendMessage(payload, isBinary=isBinary)
+
+        def onClose(self, wasClean, code, reason):
+            if hasattr(self, "client_instance") and self.client_instance:
+                self.client_instance.sendClose(code=1000,reason=reason)
+    return WebsocketReverseProxyServerProtocol
+
+class SocketIOReverseProxy(proxy.ReverseProxyResource):
+    def __init__(self, host, port, path):
+        proxy.ReverseProxyResource.__init__(self, host, port, path)
+        self.host = host
+        self.port = port
+        self.path = path
+        self.ws_path = "socket.io"
+        self.ws_redirect = f"ws://{self.host}:{self.port}/{self.path.decode('utf8')}/{self.ws_path}/"
+        factory = WebSocketServerFactory()
+        factory.protocol = build_websocket_reverse_proxy_protocol(self.ws_redirect, self.host, self.port, override_client_payload=self.rewrite_socketio_response)
+        self.ws_proxy = WebSocketResource(factory)
+        self.rev_proxy = proxy.ReverseProxyResource(self.host, self.port, b"/"+self.path)
+
+    def rewrite_socketio_response(self, payload, isBinary=False):
+        return vtt_interaction.rewrite_template_payload(payload, isBinary=isBinary)
+
+    def render(self, request):
+        return self.rev_proxy.render(request)
+
+    def getChild(self, path, request):
+        if path.decode().startswith(self.ws_path):
+            return self.ws_proxy
+        else:
+            return proxy.ReverseProxyResource(self.host, self.port, b"/"+self.path+b"/"+path)
+
+class FoundryResource(SocketIOReverseProxy):
+    def __init__(self,host,port,path,foundry_main,foundry_data_path):
+        super().__init__(host, port, path)
+        subprocess.Popen(["node", foundry_main, f"--dataPath={foundry_data_path}", "--noupdate"], stdout=subprocess.DEVNULL)
+
+    def login_flask(self):
+        return vtt_interaction.login(f"http://{self.host}:{self.port}/{self.path.decode()}")
