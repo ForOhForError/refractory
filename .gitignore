@@ -1,0 +1,7 @@
+data/
+output/
+*.zip
+__pycache__
+*.pyc
+.python-version
+.env

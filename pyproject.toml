@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "multifoundry"
+version = "0.1.0"
+description = "Foundry VTT Instance Manager"
+authors = ["ForOhForError"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31.0"
+flask = "^2.3.2"
+plyvel-win32 = {version = "^1.3.0", platform = "windows"}
+plyvel = {version = "^1.5.0", platform = "linux"}
+twisted = "^22.10.0"
+autobahn = {extras = ["twisted"], version = "^23.6.2"}
+websockets = "^11.0.3"
+flask-admin = "^1.6.1"
+flask-behind-proxy = "^0.1.1"
+
+[tool.poetry.group.dev.dependencies]
+beautifulsoup4 = "^4.12.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

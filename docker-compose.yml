@@ -1,0 +1,7 @@
+services:
+  multifoundry:
+    image: multifoundry:latest
+    ports: 
+      - 8080:8080
+    volumes:
+      - ./src:/app/src
