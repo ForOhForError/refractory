@@ -8,34 +8,36 @@ import foundry_interaction
 import foundry_resource
 from management_app import flask_app
 
+import os
+import os.path
+
 FOUNDRY_INSTANCES = {}
 MULTIFOUNDRY = None
 
 def get_unassigned_port():
     return 30000
 
-def add_foundry_instance(instance_name, version, foundry_resource):
+def add_foundry_instance(instance_name, version, releases_dir="foundry_releases"):
+    global MULTIFOUNDRY
     port = get_unassigned_port()
     instance_name_bytes = instance_name.encode()
+    main_path = os.path.join(releases_dir, version, "resources", "app", "main.js")
+    data_path = os.path.join("instance-data",instance_name)
+    os.makedirs(data_path, exist_ok=True)
     foundry = foundry_resource.FoundryResource(
-        "localhost",port,instance_name_bytes,
-        f"foundry_releases/{version}/resources/app/main.js",
-        "data/foundryvtt"
+        "localhost", port, instance_name_bytes,
+        main_path, data_path
     )
-    multifoundry.putChild(instance_name_bytes, foundry)
+    MULTIFOUNDRY.putChild(instance_name_bytes, foundry)
     FOUNDRY_INSTANCES[instance_name] = foundry
 
-def main():
-    multifoundry = Resource()
-    MULTIFOUNDRY = multifoundry
-    site = Site(multifoundry)
+def run():
+    global MULTIFOUNDRY
+    MULTIFOUNDRY = Resource()
+    site = Site(MULTIFOUNDRY)
 
     resource = WSGIResource(reactor, reactor.getThreadPool(), flask_app)
-    multifoundry.putChild(b"manage",resource)
+    MULTIFOUNDRY.putChild(b"manage",resource)
 
     reactor.listenTCP(8080, site)
     reactor.run()
-
-
-if __name__ == "__main__":
-    main()

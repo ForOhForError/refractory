@@ -11,6 +11,9 @@ from autobahn.twisted.resource import WebSocketResource
 import vtt_interaction
 import foundry_interaction
 
+import os.path
+import json
+
 def build_websocket_reverse_proxy_client_protocol(server_instance, override_client_payload=None):
     class WebsocketReverseProxyClientProtocol(WebSocketClientProtocol):
         def onOpen(self):
@@ -74,9 +77,32 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
             return proxy.ReverseProxyResource(self.host, self.port, b"/"+self.path+b"/"+path)
 
 class FoundryResource(SocketIOReverseProxy):
-    def __init__(self,host,port,path,foundry_main,foundry_data_path):
+    def __init__(
+        self, host, port, path, foundry_main, foundry_data_path
+    ):
         super().__init__(host, port, path)
-        subprocess.Popen(["node", foundry_main, f"--dataPath={foundry_data_path}", "--noupdate"], stdout=subprocess.DEVNULL)
+        self.data_path = foundry_data_path
+        self.inject_config()
+        self.process = subprocess.Popen(
+            ["node", foundry_main, f"--dataPath={self.data_path}", "--noupdate"], 
+            stdout=subprocess.DEVNULL
+        )
+
+    def inject_config(self):
+        config_path = os.path.join(self.data_path, "Config")
+        os.makedirs(config_path, exist_ok=True)
+        config_file_path = os.path.join(config_path, "options.json")
+        if os.path.exists(config_file_path):
+            with open(config_file_path) as config_file:
+                config_obj = json.load(config_file)
+        else:
+            config_obj = {}
+        config_obj.update({
+            "port": self.port,
+            "routePrefix": self.path.decode()
+        })
+        with open(config_file_path, "w") as config_file:
+            config_file.write(json.dumps(config_obj))
 
     def login_flask(self):
         return vtt_interaction.login(f"http://{self.host}:{self.port}/{self.path.decode()}")

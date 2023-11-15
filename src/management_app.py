@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import foundry_interaction
 import flask
 import secrets
@@ -57,5 +57,13 @@ def launch_version(version_number):
     versions = []
     with requests.Session() as rsession:
         rsession.cookies.update(cookies)
-        versions = foundry_interaction.get_releases(rsession)
-    return render_template('versions.html', versions=versions)
+        releases = foundry_interaction.get_releases(rsession)
+        if version_number in [release.get('version') for release in releases]:
+            success = foundry_interaction.download_and_write_release(rsession, version_string=version_number)
+            if success:
+                from web_server import add_foundry_instance
+                add_foundry_instance('foundry', version_number)
+                return ':)'
+            else:
+                return '...'
+    return ':('

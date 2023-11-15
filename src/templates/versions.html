@@ -4,7 +4,7 @@
     <h1>{% block title %} Versions {% endblock %}</h1>
     {% for version in versions %}
         <div>
-            <p>{{version.version}}</p>
+            <p>{{version.version}} - <a href="/manage/versions/{{version.version}}">Launch!</a></p>
         </div>
     {% endfor %}
 {% endblock %}

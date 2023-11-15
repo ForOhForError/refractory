@@ -6,6 +6,8 @@ import zipfile
 import os
 import os.path
 
+from twisted.python import log
+
 from twisted.internet import reactor
 from twisted.web import proxy, server
 
@@ -107,12 +109,13 @@ def download_linux_zip(session, version_string, download_dir="foundry_releases_z
             download_res.raise_for_status()
             filename = f"{version_string}.zip"
             zip_file = os.path.join(download_dir, filename)
-            os.mkdir(download_dir)
+            os.makedirs(download_dir, exist_ok=True)
             with open(zip_file, 'wb') as f:
                 for chunk in download_res.iter_content(chunk_size=8192): 
                     f.write(chunk)
             return True
-    except Exception:
+    except Exception as ex:
+        raise ex
         return False
 
 def get_licenses(session, canon_username):
@@ -142,14 +145,30 @@ def get_licenses(session, canon_username):
         parsed_licenses.append(license_obj)
     return parsed_licenses
 
-def download_and_write_release(session, version_string=None, output_path="foundry_releases"):
-    with requests.Session() as session:
-        tok = get_token(session)
-        if not version_string:
-            releases = get_releases(session)
-            version_string = releases[0].version
-        success = download_linux_zip(session, latest["version"])
+def download_and_write_release(session, version_string=None, output_path="foundry_releases", download_dir="foundry_releases_zip"):
+    tok = get_token(session)
+    if not version_string:
+        releases = get_releases(session)
+        version_string = releases[0].version
+    try:
         filename = f"{version_string}.zip"
         zip_file = os.path.join(download_dir, filename)
-        with zipfile.ZipFile(filename, 'r') as zip_ref:
-            zip_ref.extractall(output_path)
+        output_dir = os.path.join(output_path,version_string)
+        test_for_file = os.path.join(output_path,version_string,"multifoundry")
+        if not os.path.exists(zip_file):
+            #raise Exception("doesn't exist")
+            success = download_linux_zip(session, version_string)
+            if not success:
+                raise Exception("didn't download")
+                return False
+        if not os.path.exists(test_for_file):
+            log.msg("extracting")
+            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                zip_ref.extractall(output_dir)
+            with open(test_for_file, "w") as testfile:
+                testfile.write("multifoundry")
+        return True
+    except Exception as ex:
+        raise ex
+        return False
+    return False
