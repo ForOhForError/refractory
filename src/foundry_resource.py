@@ -74,7 +74,7 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
         if path.decode().startswith(self.ws_path):
             return self.ws_proxy
         else:
-            return proxy.ReverseProxyResource(self.host, self.port, b"/"+self.path+b"/"+path)
+            return self.rev_proxy.getChild(path, request)
 
 class FoundryResource(SocketIOReverseProxy):
     def __init__(
