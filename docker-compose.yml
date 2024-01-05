@@ -1,10 +1,9 @@
 services:
   multifoundry:
-    image: multifoundry:latest
+    build: .
     ports: 
       - 8080:8080
     volumes:
-      - ./src:/app/src
       - release_zips:/app/foundry_releases_zip
       - releases:/app/foundry_releases
 volumes:
