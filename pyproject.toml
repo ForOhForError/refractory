@@ -8,12 +8,10 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.31.0"
-flask = "^2.3.2"
 twisted = "^22.10.0"
 autobahn = {extras = ["twisted"], version = "^23.6.2"}
 websockets = "^11.0.3"
-flask-admin = "^1.6.1"
-flask-behind-proxy = "^0.1.1"
+django = "^5.0.1"
 
 [tool.poetry.group.dev.dependencies]
 beautifulsoup4 = "^4.12.2"

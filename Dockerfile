@@ -8,10 +8,11 @@ RUN apt-get update && \
     apt-get install -y nodejs libleveldb-dev && \
     python3 -m pip install poetry
 
-COPY src/ /app/src/
 COPY poetry.lock /app/
 COPY pyproject.toml /app/
-COPY README.md /app/
+COPY manage.py /app/
 WORKDIR /app/
 RUN poetry install --no-root
-ENTRYPOINT ["poetry", "run", "python", "src/main.py"]
+COPY src/ /app/src/
+COPY init_and_run.sh /app/
+ENTRYPOINT ["bash", "init_and_run.sh"]

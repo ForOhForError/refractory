@@ -1,5 +1,5 @@
 import requests
-import flask
+#import flask
 from websockets.sync.client import connect
 import re
 import json
@@ -55,13 +55,13 @@ def login(base_url, user:str="", password:str=""):
         )
         if login_res.ok:
             try:
-                res = flask.redirect(login_res.json().get("redirect"))
-                res.set_cookie('session', session.cookies.get('session',''))
+                res = None #flask.redirect(login_res.json().get("redirect"))
+                # res.set_cookie('session', session.cookies.get('session',''))
                 return res
             except Exception:
                 return login_res.content
         else:
-            return flask.redirect("/manage")
+            return None #flask.redirect("/manage")
 
 def get_join_info(base_url, session_id = None):
     try:

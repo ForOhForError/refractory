@@ -2,16 +2,21 @@ from twisted.internet import reactor
 from twisted.web.resource import Resource
 from twisted.web.wsgi import WSGIResource
 from twisted.web.server import Site
+from twisted.python import log as twlog
 
 import vtt_interaction
 import foundry_interaction
 import foundry_resource
-from management_app import flask_app
 from urllib.parse import quote_plus
 
-
+import sys
 import os
 import os.path
+
+twlog.startLogging(sys.stdout)
+from django.core.wsgi import get_wsgi_application
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multifoundry.settings')
+
 
 FOUNDRY_INSTANCES = {}
 MULTIFOUNDRY = None
@@ -41,7 +46,7 @@ def run():
     MULTIFOUNDRY = Resource()
     site = Site(MULTIFOUNDRY)
 
-    resource = WSGIResource(reactor, reactor.getThreadPool(), flask_app)
+    resource = WSGIResource(reactor, reactor.getThreadPool(), get_wsgi_application())
     MULTIFOUNDRY.putChild(b"manage",resource)
 
     reactor.listenTCP(8080, site)
