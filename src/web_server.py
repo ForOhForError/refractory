@@ -7,6 +7,8 @@ import vtt_interaction
 import foundry_interaction
 import foundry_resource
 from management_app import flask_app
+from urllib.parse import quote_plus
+
 
 import os
 import os.path
@@ -15,12 +17,15 @@ FOUNDRY_INSTANCES = {}
 MULTIFOUNDRY = None
 
 def get_unassigned_port():
-    return 30000
+    if len(FOUNDRY_INSTANCES) == 0:
+        return 30000
+    else:
+        return max([instance.port for instance in FOUNDRY_INSTANCES.values()])
 
 def add_foundry_instance(instance_name, version, releases_dir="foundry_releases"):
     global MULTIFOUNDRY
     port = get_unassigned_port()
-    instance_name_bytes = instance_name.encode()
+    instance_name_bytes = f"instances/{quote_plus(instance_name)}".encode()
     main_path = os.path.join(releases_dir, version, "resources", "app", "main.js")
     data_path = os.path.join("instance-data",instance_name)
     os.makedirs(data_path, exist_ok=True)

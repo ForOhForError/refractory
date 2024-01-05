@@ -81,7 +81,9 @@ class FoundryResource(SocketIOReverseProxy):
         self, host, port, path, foundry_main, foundry_data_path
     ):
         super().__init__(host, port, path)
+        self.path_bytes = path
         self.data_path = foundry_data_path
+        self.port = port
         self.inject_config()
         self.process = subprocess.Popen(
             ["node", foundry_main, f"--dataPath={self.data_path}", "--noupdate"], 

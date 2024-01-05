@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request
+from flask_admin import Admin
+
 import foundry_interaction
 import flask
 import secrets
@@ -7,6 +9,16 @@ import requests
 flask_app = Flask(__name__)
 flask_app.secret_key = secrets.token_urlsafe(32)
 flask_app.debug = True
+# set optional bootswatch theme
+flask_app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
+
+admin = Admin(
+    flask_app, 
+    name='Multifoundry Management', 
+    template_mode='bootstrap3',
+    endpoint="manage/admin"
+)
+# Add administrative views here
 
 links = [
     {"url":"/manage/login","text":"Login"},
