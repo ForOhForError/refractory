@@ -4,8 +4,8 @@ class FoundryInstance(models.Model):
     instance_name = models.CharField(max_length=30, unique=True)
     
 class FoundryVersion(models.Model):
-    pass
-    
+    version_string = models.CharField(max_length=30, unique=True)
+
 class FoundryLicense(models.Model):
     license_key = models.CharField(max_length=29, min_length=29)
     instance = models.OneToOneField(
