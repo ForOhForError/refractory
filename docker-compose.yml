@@ -6,6 +6,8 @@ services:
     volumes:
       - release_zips:/app/foundry_releases_zip
       - releases:/app/foundry_releases
+      - db:/app/db
 volumes:
   releases:
   release_zips:
+  db:

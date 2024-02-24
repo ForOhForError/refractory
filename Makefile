@@ -1,4 +1,7 @@
-all: docker
+all: build
 
-docker:
-	docker build -t multifoundry:latest .
+build:
+	docker compose build
+
+up: build
+	docker compose up -d

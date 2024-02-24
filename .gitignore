@@ -6,3 +6,6 @@ __pycache__
 .python-version
 .env
 *.sqlite3
+db/*
+static/*
+multifoundry_data/*
