@@ -15,8 +15,6 @@ import os.path
 
 twlog.startLogging(sys.stdout)
 from django.core.wsgi import get_wsgi_application
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multifoundry.settings')
-
 
 FOUNDRY_INSTANCES = {}
 MULTIFOUNDRY = None
