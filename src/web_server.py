@@ -4,9 +4,9 @@ from twisted.web.wsgi import WSGIResource
 from twisted.web.server import Site
 from twisted.python import log as twlog
 
-import vtt_interaction
-import foundry_interaction
-import foundry_resource
+import web_interaction.vtt_interaction
+import web_interaction.foundry_interaction
+import web_interaction.foundry_resource
 from urllib.parse import quote_plus
 
 import sys

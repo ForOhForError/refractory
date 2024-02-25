@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 from flask_admin import Admin
 
-import foundry_interaction
+import web_interaction.foundry_interaction
 #import flask
 import secrets
 import requests

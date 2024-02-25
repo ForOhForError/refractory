@@ -8,8 +8,8 @@ from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketClientFa
 
 from autobahn.twisted.resource import WebSocketResource
 
-import vtt_interaction
-import foundry_interaction
+import web_interaction.vtt_interaction
+import web_interaction.foundry_interaction
 
 import os.path
 import json
