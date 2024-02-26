@@ -72,9 +72,9 @@ def get_token(session):
 def login(session, csrf_token, username, password):
     form_body = {
         "csrfmiddlewaretoken": csrf_token,
-        "login_password": password,
-        "login_redirect": "/",
-        "login_username": username,
+        "password": password,
+        "next": "/",
+        "username": username,
         "login": "",
     }
     login_res = session.post(

@@ -1,25 +1,9 @@
-{% extends 'base.html' %}
+{% extends 'admin/index.html' %}
 
 {% block content %}
-    <h1>{% block title %} Versions {% endblock %}</h1>
-    {% if canon_username %}
-        <p>Logged in as {{canon_username}}</p>
-    {% else %}
-        <form method="post">
-            <label for="username">Foundry Username</label>
-            <br>
-            <input type="text" name="username"
-                placeholder="username"
-                value="{{ request.form['username'] }}"></input>
-            <br>
-
-            <label for="password">Foundry Password</label>
-            <br>
-            <input type="password" name="password"
-                placeholder="password"
-                value="{{ request.form['password'] }}"></input>
-            <br>
-            <button type="submit">Submit</button>
-        </form>
-    {% endif %}
+<form method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit">
+</form>
 {% endblock %}
