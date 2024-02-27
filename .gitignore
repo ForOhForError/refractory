@@ -9,3 +9,5 @@ __pycache__
 db/*
 static/*
 multifoundry_data/*
+foundry_releases/*
+foundry_releases_zip/*
