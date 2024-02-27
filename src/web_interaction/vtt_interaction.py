@@ -26,13 +26,16 @@ def rewrite_template_payload(payload, isBinary=False):
             'form',
             attrs = {'id':'join-game'}
         )
-        # if join_form:
-        #     for element in join_form.children:
-        #         element.extract()
+        if join_form:
+            for element in join_form.children:
+                element.extract()
         template_str = html_data_parse.encode("ascii").decode()
-        print(template_str)
-        json_res = {"html":template_str}
+        json_res = dict(json_data)
+        json_res.update({"html":template_str})
         json_str = json.dumps(json_res)
+        
+        print(json_data)
+        print(json_res)
         #return f'{code}[{json_str}]'.encode()
     return payload.encode()
 
