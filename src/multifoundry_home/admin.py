@@ -15,41 +15,11 @@ from django.views.generic.edit import FormView
 from web_interaction import foundry_interaction
 import requests
 
-class FoundryLoginForm(forms.Form):
-    username = forms.CharField()
-    password = forms.CharField(widget=forms.PasswordInput)
+from twisted.internet import reactor
+from web_interaction import foundry_interaction
 
-    def send_email(self):
-        # send email using the self.cleaned_data dictionary
-        pass
-
-class FoundryLoginFormView(FormView):
-    template_name = "foundry_login.html"
-    form_class = FoundryLoginForm
-    success_url = "/manage/admin"
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(MultifoundryAdminSite().each_context(self.request))
-        return context
-
-    def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
-        # It should return an HttpResponse.
-        username = form.cleaned_data["username"]
-        password = form.cleaned_data["password"]
-        print(username, password)
-        with requests.Session() as rsession:
-            tok = foundry_interaction.get_token(rsession)
-            canon_username = foundry_interaction.login(rsession, tok, username, password)
-            if canon_username:
-                cookies = rsession.cookies.get_dict()
-                session_id = cookies.get('sessionid')
-                resp = super().form_valid(form)
-                resp.set_cookie("foundry_session", session_id)
-                resp.set_cookie("foundry_username", canon_username)
-                return resp
-        return super().form_valid(form)
+FOUNDRY_SESSION_COOKIE = "foundry_session"
+FOUNDRY_USERNAME_COOKIE = "foundry_username"
 
 class MultifoundryAdminSite(admin.AdminSite):
     site_header = _("Multifoundry Administration")
@@ -77,6 +47,75 @@ class MultifoundryAdminSite(admin.AdminSite):
         new_urls = [path("foundry_login/", FoundryLoginFormView.as_view(), name="Foundry Login")]
         return new_urls + urls
 
-@admin.register(FoundryInstance, FoundryVersion, FoundryLicense)
-class MultifoundryAdmin(admin.ModelAdmin):
-    pass
+adminsite = MultifoundryAdminSite()
+
+class FoundryLoginForm(forms.Form):
+    username = forms.CharField()
+    password = forms.CharField(widget=forms.PasswordInput)
+
+class FoundryLoginFormView(FormView):
+    template_name = "foundry_login.html"
+    form_class = FoundryLoginForm
+    success_url = "/manage/admin"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(adminsite.each_context(self.request))
+        return context
+
+    def form_valid(self, form):
+        # This method is called when valid form data has been POSTed.
+        # It should return an HttpResponse.
+        username = form.cleaned_data["username"]
+        password = form.cleaned_data["password"]
+        print(username, password)
+        with requests.Session() as rsession:
+            tok = foundry_interaction.get_token(rsession)
+            canon_username = foundry_interaction.login(rsession, tok, username, password)
+            if canon_username:
+                cookies = rsession.cookies.get_dict()
+                session_id = cookies.get('sessionid')
+                resp = super().form_valid(form)
+                cookie_kwargs = {
+                    "secure": True,
+                    "httponly": True,
+                    "samesite": "Strict"
+                }
+                resp.set_signed_cookie(FOUNDRY_SESSION_COOKIE, session_id, **cookie_kwargs)
+                resp.set_signed_cookie(FOUNDRY_USERNAME_COOKIE, canon_username, **cookie_kwargs)
+                return resp
+        return super().form_valid(form)
+
+def download_single_release(version_object,foundry_session):
+    with requests.Session() as rsession:
+        rsession.cookies.update({"sessionid":foundry_session})
+        print(f"downloading release {version_object.version_string}")
+        version_object.download_status = FoundryVersion.DownloadStatus.DOWNLOADING
+        version_object.save()
+        success = foundry_interaction.download_and_write_release(rsession, version_string=version_object.version_string)
+        if success:
+            version_object.download_status = FoundryVersion.DownloadStatus.DOWNLOADED
+            version_object.save()
+
+@admin.action(description=_("Download Release"))
+def download_release(modeladmin, request, queryset):
+    foundry_session = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE, default=None)
+    foundry_username = request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE, default=None)
+    if foundry_session and foundry_username:
+        for release in queryset:
+            reactor.callInThread(download_single_release, release, foundry_session)
+    else:
+        print("not logged in")
+
+@admin.action(description=_("Fetch Version List"))
+def load_releases(modeladmin, request, queryset):
+    reactor.callInThread(FoundryVersion.load_versions)
+
+class FoundryVersionAdmin(admin.ModelAdmin):
+    actions = [download_release, load_releases]
+    list_display = ["version_string", "update_type", "update_category", "downloaded"]
+
+adminsite.register(FoundryInstance)
+adminsite.register(FoundryLicense)
+adminsite.register(FoundryVersion,FoundryVersionAdmin)
+

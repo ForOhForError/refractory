@@ -33,11 +33,20 @@ class FoundryVersion(models.Model):
         DEVELOPMENT = "Development", _("Development")
         TESTING = "Testing", _("Testing")
         STABLE = "Stable", _("Stable")
+        
+    class DownloadStatus(models.TextChoices):
+        NOT_DOWNLOADED = "Not Downloaded", _("Not Downloaded")
+        DOWNLOADING = "Downloading", _("Downloading")
+        DOWNLOADED = "Downloaded", _("Downloaded")
 
     version_string = models.CharField(max_length=30, unique=True)
     update_type = models.CharField(max_length=10, choices=UpdateType.choices, default=UpdateType.FULL)
     update_category = models.CharField(max_length=15, choices=UpdateCategory.choices, default=UpdateCategory.STABLE)
-    downloaded = models.BooleanField(default=False)
+    download_status = models.CharField(max_length=15, choices=DownloadStatus.choices, default=DownloadStatus.NOT_DOWNLOADED)
+    
+    @property
+    def downloaded(self):
+        return self.download_status == FoundryVersion.DownloadStatus.DOWNLOADED
     
     def __str__(self):
         return self.version_string

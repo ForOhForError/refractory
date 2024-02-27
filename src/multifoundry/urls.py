@@ -19,8 +19,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from multifoundry_home.admin import adminsite
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', adminsite.urls),
     path('', include('multifoundry_home.urls'))
 ]
 urlpatterns += static('/static', document_root='static')
