@@ -8,8 +8,7 @@ from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketClientFa
 
 from autobahn.twisted.resource import WebSocketResource
 
-import web_interaction.vtt_interaction
-import web_interaction.foundry_interaction
+from web_interaction import vtt_interaction, foundry_interaction
 
 import os.path
 import json
@@ -87,7 +86,7 @@ class FoundryResource(SocketIOReverseProxy):
         self.inject_config()
         self.process = subprocess.Popen(
             ["node", foundry_main, f"--dataPath={self.data_path}", "--noupdate"], 
-            stdout=subprocess.DEVNULL
+            #stdout=subprocess.DEVNULL
         )
 
     def inject_config(self):

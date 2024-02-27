@@ -137,7 +137,18 @@ def load_licences(modeladmin, request, queryset):
 class FoundryLicenseAdmin(admin.ModelAdmin):
     actions = [load_licences]
 
-adminsite.register(FoundryInstance)
+@admin.action(description=_("Launch Instances"))
+def launch_instances(modeladmin, request, queryset):
+    from web_server import add_foundry_instance
+    for instance in queryset:
+        add_foundry_instance(
+            instance.instance_name, 
+            instance.foundry_version.version_string
+        )
+class FoundryInstanceAdmin(admin.ModelAdmin):
+    actions = [launch_instances]
+
+adminsite.register(FoundryInstance,FoundryInstanceAdmin)
 adminsite.register(FoundryLicense,FoundryLicenseAdmin)
 adminsite.register(FoundryVersion,FoundryVersionAdmin)
 

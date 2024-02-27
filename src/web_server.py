@@ -4,8 +4,6 @@ from twisted.web.wsgi import WSGIResource
 from twisted.web.server import Site
 from twisted.python import log as twlog
 
-import web_interaction.vtt_interaction
-import web_interaction.foundry_interaction
 import web_interaction.foundry_resource
 from urllib.parse import quote_plus
 
@@ -28,16 +26,17 @@ def get_unassigned_port():
 def add_foundry_instance(instance_name, version, releases_dir="foundry_releases"):
     global MULTIFOUNDRY
     port = get_unassigned_port()
-    instance_name_bytes = f"instances/{quote_plus(instance_name)}".encode()
+    instance_name_bytes = f"{quote_plus(instance_name)}".encode()
     main_path = os.path.join(releases_dir, version, "resources", "app", "main.js")
-    data_path = os.path.join("instance-data",instance_name)
+    data_path = os.path.join("instance_data",instance_name)
     os.makedirs(data_path, exist_ok=True)
-    foundry = foundry_resource.FoundryResource(
+    foundry = web_interaction.foundry_resource.FoundryResource(
         "localhost", port, instance_name_bytes,
         main_path, data_path
     )
     MULTIFOUNDRY.putChild(instance_name_bytes, foundry)
     FOUNDRY_INSTANCES[instance_name] = foundry
+    print(f"launched {instance_name} - version {version}")
 
 def run():
     global MULTIFOUNDRY
