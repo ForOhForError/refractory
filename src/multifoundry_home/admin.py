@@ -115,7 +115,29 @@ class FoundryVersionAdmin(admin.ModelAdmin):
     actions = [download_release, load_releases]
     list_display = ["version_string", "update_type", "update_category", "downloaded"]
 
+def load_licenses_threaded(foundry_session, foundry_username):
+    with requests.Session() as rsession:
+        rsession.cookies.update({"sessionid":foundry_session})
+        licenses = foundry_interaction.get_licenses(rsession, foundry_username)
+        for license_obj in licenses:
+            license_key = license_obj.get("license_key")
+            if not FoundryLicense.objects.filter(license_key=license_key).exists():
+                FoundryLicense(license_key=license_key).save()
+
+@admin.action(description=_("Fetch Licenses"))
+def load_licences(modeladmin, request, queryset):
+    foundry_session = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE, default=None)
+    foundry_username = request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE, default=None)
+    if foundry_session and foundry_username:
+        for release in queryset:
+            reactor.callInThread(load_licenses_threaded, foundry_session, foundry_username)
+    else:
+        print("not logged in")
+
+class FoundryLicenseAdmin(admin.ModelAdmin):
+    actions = [load_licences]
+
 adminsite.register(FoundryInstance)
-adminsite.register(FoundryLicense)
+adminsite.register(FoundryLicense,FoundryLicenseAdmin)
 adminsite.register(FoundryVersion,FoundryVersionAdmin)
 
