@@ -17,6 +17,7 @@ import requests
 
 from twisted.internet import reactor
 from web_interaction import foundry_interaction
+from web_server import add_foundry_instance
 
 FOUNDRY_SESSION_COOKIE = "foundry_session"
 FOUNDRY_USERNAME_COOKIE = "foundry_username"
@@ -68,7 +69,6 @@ class FoundryLoginFormView(FormView):
         # It should return an HttpResponse.
         username = form.cleaned_data["username"]
         password = form.cleaned_data["password"]
-        print(username, password)
         with requests.Session() as rsession:
             tok = foundry_interaction.get_token(rsession)
             canon_username = foundry_interaction.login(rsession, tok, username, password)
@@ -92,10 +92,13 @@ def download_single_release(version_object,foundry_session):
         print(f"downloading release {version_object.version_string}")
         version_object.download_status = FoundryVersion.DownloadStatus.DOWNLOADING
         version_object.save()
-        success = foundry_interaction.download_and_write_release(rsession, version_string=version_object.version_string)
-        if success:
-            version_object.download_status = FoundryVersion.DownloadStatus.DOWNLOADED
-            version_object.save()
+        success = False
+        try:
+            success = foundry_interaction.download_and_write_release(rsession, version_string=version_object.version_string)
+        except Exception as ex:
+            print(f"Exception while downloading: {ex}")
+        version_object.download_status = FoundryVersion.DownloadStatus.DOWNLOADED if success else FoundryVersion.DownloadStatus.NOT_DOWNLOADED
+        version_object.save()
 
 @admin.action(description=_("Download Release"))
 def download_release(modeladmin, request, queryset):
@@ -139,12 +142,8 @@ class FoundryLicenseAdmin(admin.ModelAdmin):
 
 @admin.action(description=_("Launch Instances"))
 def launch_instances(modeladmin, request, queryset):
-    from web_server import add_foundry_instance
     for instance in queryset:
-        add_foundry_instance(
-            instance.instance_name, 
-            instance.foundry_version.version_string
-        )
+        add_foundry_instance(instance)
 class FoundryInstanceAdmin(admin.ModelAdmin):
     actions = [launch_instances]
 

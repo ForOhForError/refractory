@@ -1,12 +1,19 @@
 from django.db import models
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, validate_unicode_slug
 from django.utils.translation import gettext_lazy as _
 
 from web_interaction import foundry_interaction
 import requests
+import os
+
+import json
+
+DATA_PATH_BASE = "instance_data"
+RELEASE_PATH_BASE = "foundry_releases"
 
 class FoundryInstance(models.Model):
-    instance_name = models.CharField(max_length=30, unique=True)
+    instance_name = models.CharField(max_length=30)
+    instance_slug = models.CharField(max_length=30, null=True, validators=[validate_unicode_slug], unique=True)
     foundry_version = models.ForeignKey(
         "FoundryVersion",
         blank=True,
@@ -22,6 +29,27 @@ class FoundryInstance(models.Model):
     def synch_to_multifoundry_hosting(cls):
         for instance in cls.objects.exclude(foundry_license=None):
             print(instance)
+    
+    @property
+    def data_path(self):
+        return os.path.join(DATA_PATH_BASE,self.instance_slug)
+    
+    def inject_config(self, port=30000):
+        config_path = os.path.join(self.data_path, "Config")
+        os.makedirs(config_path, exist_ok=True)
+        config_file_path = os.path.join(config_path, "options.json")
+        if os.path.exists(config_file_path):
+            with open(config_file_path) as config_file:
+                config_obj = json.load(config_file)
+        else:
+            config_obj = {}
+        config_obj.update({
+            "port": port,
+            "routePrefix": self.instance_slug
+        })
+        with open(config_file_path, "w") as config_file:
+            config_file.write(json.dumps(config_obj))
+
 
 class FoundryVersion(models.Model):
     class UpdateType(models.TextChoices):
@@ -43,6 +71,10 @@ class FoundryVersion(models.Model):
     update_type = models.CharField(max_length=10, choices=UpdateType.choices, default=UpdateType.FULL)
     update_category = models.CharField(max_length=15, choices=UpdateCategory.choices, default=UpdateCategory.STABLE)
     download_status = models.CharField(max_length=15, choices=DownloadStatus.choices, default=DownloadStatus.NOT_DOWNLOADED)
+    
+    @property
+    def executable_path(self):
+        return os.path.join(RELEASE_PATH_BASE, self.version_string, "resources", "app", "main.js")
     
     @property
     def downloaded(self):

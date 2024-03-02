@@ -12,6 +12,9 @@ twisted = "^22.10.0"
 autobahn = {extras = ["twisted"], version = "^23.6.2"}
 websockets = "^11.0.3"
 django = "^5.0.1"
+pybars3 = "^0.9.7"
+lxml = "^5.1.0"
+html5lib = "^1.1"
 
 [tool.poetry.group.dev.dependencies]
 beautifulsoup4 = "^4.12.2"

@@ -77,33 +77,25 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
 
 class FoundryResource(SocketIOReverseProxy):
     def __init__(
-        self, host, port, path, foundry_main, foundry_data_path
+        self, foundry_instance, host="localhost", port=30000,
+        log = True
     ):
-        super().__init__(host, port, path)
-        self.path_bytes = path
-        self.data_path = foundry_data_path
+        self.foundry_instance = foundry_instance
         self.port = port
-        self.inject_config()
+        self.host = host
+        self.path = foundry_instance.instance_slug.encode()
+        super().__init__(self.host, self.port, self.path)
+        data_path = self.foundry_instance.data_path
+        self.foundry_instance.inject_config(port)
+        if log:
+            kwargs = {"stdout":subprocess.DEVNULL}
+        else:
+            kwargs = {}
         self.process = subprocess.Popen(
-            ["node", foundry_main, f"--dataPath={self.data_path}", "--noupdate"], 
-            #stdout=subprocess.DEVNULL
+            ["node", foundry_instance.foundry_version.executable_path, f"--dataPath={data_path}", "--noupdate"], 
+            **kwargs
         )
 
-    def inject_config(self):
-        config_path = os.path.join(self.data_path, "Config")
-        os.makedirs(config_path, exist_ok=True)
-        config_file_path = os.path.join(config_path, "options.json")
-        if os.path.exists(config_file_path):
-            with open(config_file_path) as config_file:
-                config_obj = json.load(config_file)
-        else:
-            config_obj = {}
-        config_obj.update({
-            "port": self.port,
-            "routePrefix": self.path.decode()
-        })
-        with open(config_file_path, "w") as config_file:
-            config_file.write(json.dumps(config_obj))
-
+    
     def login_flask(self):
         return vtt_interaction.login(f"http://{self.host}:{self.port}/{self.path.decode()}")

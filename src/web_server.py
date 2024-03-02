@@ -14,37 +14,34 @@ import os.path
 twlog.startLogging(sys.stdout)
 from django.core.wsgi import get_wsgi_application
 
-FOUNDRY_INSTANCES = {}
-MULTIFOUNDRY = None
+this = sys.modules[__name__]
+
+this.foundry_instances = {}
+this.multifoundry = None
 
 def get_unassigned_port():
-    if len(FOUNDRY_INSTANCES) == 0:
+    if len(this.foundry_instances) == 0:
         return 30000
     else:
-        return max([instance.port for instance in FOUNDRY_INSTANCES.values()])
+        return max([instance.port for instance in this.foundry_instances.values()])
 
-def add_foundry_instance(instance_name, version, releases_dir="foundry_releases"):
-    global MULTIFOUNDRY
+def add_foundry_instance(foundry_instance):
     port = get_unassigned_port()
-    instance_name_bytes = f"{quote_plus(instance_name)}".encode()
-    main_path = os.path.join(releases_dir, version, "resources", "app", "main.js")
-    data_path = os.path.join("instance_data",instance_name)
-    os.makedirs(data_path, exist_ok=True)
+    instance_slug_bytes = foundry_instance.instance_slug.encode()
+    os.makedirs(foundry_instance.data_path, exist_ok=True)
     foundry = web_interaction.foundry_resource.FoundryResource(
-        "localhost", port, instance_name_bytes,
-        main_path, data_path
+        foundry_instance, port=port
     )
-    MULTIFOUNDRY.putChild(instance_name_bytes, foundry)
-    FOUNDRY_INSTANCES[instance_name] = foundry
-    print(f"launched {instance_name} - version {version}")
+    this.multifoundry.putChild(instance_slug_bytes, foundry)
+    this.foundry_instances[foundry_instance.instance_name] = foundry
+    print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
 
 def run():
-    global MULTIFOUNDRY
-    MULTIFOUNDRY = Resource()
-    site = Site(MULTIFOUNDRY)
+    this.multifoundry = Resource()
+    site = Site(this.multifoundry)
 
     resource = WSGIResource(reactor, reactor.getThreadPool(), get_wsgi_application())
-    MULTIFOUNDRY.putChild(b"manage",resource)
+    this.multifoundry.putChild(b"manage",resource)
 
     reactor.listenTCP(8080, site)
     reactor.run()
