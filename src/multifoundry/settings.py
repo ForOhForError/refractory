@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import multifoundry.environment
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -20,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-9*hp7%5p#8w6#@5(!u2q0kdy73!8ot8lp69l^ae)1m5(ultyl8'
+SECRET_KEY = multifoundry.environment.DJANGO_SECRET
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = multifoundry.environment.DJANGO_DEBUG
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = multifoundry.environment.DJANGO_ALLOWED_HOSTS
 
 
 # Application definition

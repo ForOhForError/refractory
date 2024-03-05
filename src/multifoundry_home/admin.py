@@ -5,6 +5,7 @@ from multifoundry_home.models.foundry_models import (
 )
 
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.mixins import UserPassesTestMixin
 
 from django import forms
 from django.template.response import TemplateResponse
@@ -54,10 +55,13 @@ class FoundryLoginForm(forms.Form):
     username = forms.CharField()
     password = forms.CharField(widget=forms.PasswordInput)
 
-class FoundryLoginFormView(FormView):
+class FoundryLoginFormView(FormView, UserPassesTestMixin):
     template_name = "foundry_login.html"
     form_class = FoundryLoginForm
     success_url = "/manage/admin"
+    
+    def test_func(self):
+        return self.request.user.is_superuser
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

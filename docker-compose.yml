@@ -7,6 +7,9 @@ services:
       - release_zips:/app/foundry_releases_zip
       - releases:/app/foundry_releases
       - db:/app/db
+    environment:
+      - DJANGO_ALLOWED_HOSTS = ${DJANGO_ALLOWED_HOSTS}
+      - DJANGO_SECRET = ${DJANGO_SECRET}
 volumes:
   releases:
   release_zips:
