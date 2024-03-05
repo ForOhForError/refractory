@@ -34,6 +34,8 @@ class FoundryInstance(models.Model):
     def data_path(self):
         return os.path.join(DATA_PATH_BASE,self.instance_slug)
     
+    
+    
     def inject_config(self, port=30000):
         config_path = os.path.join(self.data_path, "Config")
         os.makedirs(config_path, exist_ok=True)
@@ -49,7 +51,21 @@ class FoundryInstance(models.Model):
         })
         with open(config_file_path, "w") as config_file:
             config_file.write(json.dumps(config_obj))
-
+    
+    def clear_unmatched_license(self):
+        config_path = os.path.join(self.data_path, "Config")
+        license_file_path = os.path.join(config_path, "license.json")
+        if os.path.exists(license_file_path):
+            with open(license_file_path) as license_file:
+                license_obj = json.load(license_file)
+        else:
+            license_obj = {}
+        license_string = None
+        if self.foundry_license:
+            license_string = self.foundry_license.license_key.replace("-","")
+        if license_obj.get("license", None) != license_string:
+            if os.path.exists(license_file_path):
+                os.remove(license_file_path)
 
 class FoundryVersion(models.Model):
     class UpdateType(models.TextChoices):

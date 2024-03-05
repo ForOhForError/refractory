@@ -15,6 +15,7 @@ django = "^5.0.1"
 pybars3 = "^0.9.7"
 lxml = "^5.1.0"
 html5lib = "^1.1"
+python-socketio = "^5.11.1"
 
 [tool.poetry.group.dev.dependencies]
 beautifulsoup4 = "^4.12.2"

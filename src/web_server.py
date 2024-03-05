@@ -35,6 +35,9 @@ def add_foundry_instance(foundry_instance):
     this.multifoundry.putChild(instance_slug_bytes, foundry)
     this.foundry_instances[foundry_instance.instance_name] = foundry
     print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
+    
+def get_foundry_resource(foundry_instance):
+    return this.foundry_instances.get(foundry_instance.instance_name, None)
 
 def run():
     this.multifoundry = Resource()

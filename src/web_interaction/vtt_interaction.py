@@ -67,10 +67,11 @@ def find_and_remove_node(html_text, *args, replacement_text:str="", **kwargs):
         print(html_text)
     return html_text
 
-def rewrite_template_payload(payload, isBinary=False):
+def rewrite_template_payload(payload, isBinary=False, response_to=None):
     parser = MyHTMLParser()
     text_payload = payload.decode()
     code_match = re.search("^\d*", text_payload)
+    print(response_to)
     code, data = int(text_payload[code_match.start():code_match.end()]), text_payload[code_match.end():]
     if code == SocketioMessageCode.TEMPLATE_RESPONSE.value:
         json_data = json.loads(data)[0]

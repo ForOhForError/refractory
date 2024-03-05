@@ -13,11 +13,39 @@ from web_interaction import vtt_interaction, foundry_interaction
 import os.path
 import json
 
+from socketio.packet import Packet
+
+def to_socketio_packet(payload):
+    if isinstance(payload, bytes):
+        str_payload = payload.decode('utf8')
+    else:
+        str_payload = payload
+    pkt = Packet()
+    try:
+        pkt.decode(str_payload)
+        return pkt
+    except Exception:
+        return None
+    
+def mod_id(id, mod=1):
+    id = str(id)
+    new_id = ""
+    if len(id) > 0:
+        new_id += str(int(id[0])+mod)
+    if len(id) > 1:
+        new_id += id[1:]
+    return int(new_id)
+
 def build_websocket_reverse_proxy_client_protocol(server_instance, override_client_payload=None):
     class WebsocketReverseProxyClientProtocol(WebSocketClientProtocol):
         def onOpen(self):
             server_instance.set_client(self)
         def onMessage(self, payload, isBinary):
+            pkt = to_socketio_packet(payload)
+            orig_pkt = None
+            if pkt and pkt.id:
+                orig_id = mod_id(pkt.id, mod=-1)
+                orig_pkt = server_instance.sent_messages.pop(orig_id, None)
             if override_client_payload:
                 payload = override_client_payload(payload, isBinary=isBinary)
             server_instance.sendMessage(payload, isBinary=isBinary)
@@ -29,6 +57,7 @@ def build_websocket_reverse_proxy_protocol(addr, host, port, override_server_pay
     class WebsocketReverseProxyServerProtocol(WebSocketServerProtocol):
         def onConnect(self, request):
             self.params = request.params
+            self.sent_messages = {}
 
         def onOpen(self):
             url = addr+"?"+"&".join([f"{key}={''.join(value)}" for (key, value) in self.params.items()])
@@ -41,6 +70,9 @@ def build_websocket_reverse_proxy_protocol(addr, host, port, override_server_pay
 
         def onMessage(self, payload, isBinary):
             if hasattr(self, "client_instance") and self.client_instance:
+                pkt = to_socketio_packet(payload)
+                if pkt and pkt.id:
+                    self.sent_messages[pkt.id] = pkt
                 if override_server_payload:
                     payload = override_server_payload(payload, isBinary=isBinary)
                 self.client_instance.sendMessage(payload, isBinary=isBinary)
@@ -63,8 +95,8 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
         self.ws_proxy = WebSocketResource(factory)
         self.rev_proxy = proxy.ReverseProxyResource(self.host, self.port, b"/"+self.path)
 
-    def rewrite_socketio_response(self, payload, isBinary=False):
-        return vtt_interaction.rewrite_template_payload(payload, isBinary=isBinary)
+    def rewrite_socketio_response(self, payload, isBinary=False, response_to=None):
+        return vtt_interaction.rewrite_template_payload(payload, isBinary=isBinary, response_to=response_to)
 
     def render(self, request):
         return self.rev_proxy.render(request)
@@ -96,6 +128,5 @@ class FoundryResource(SocketIOReverseProxy):
             **kwargs
         )
 
-    
     def login_flask(self):
         return vtt_interaction.login(f"http://{self.host}:{self.port}/{self.path.decode()}")
