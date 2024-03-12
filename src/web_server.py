@@ -2,7 +2,6 @@ from twisted.internet import reactor
 from twisted.web.resource import Resource
 from twisted.web.wsgi import WSGIResource
 from twisted.web.server import Site
-from twisted.python import log as twlog
 
 import web_interaction.foundry_resource
 from urllib.parse import quote_plus
@@ -13,7 +12,6 @@ import os.path
 
 from twisted.web.util import redirectTo
 
-twlog.startLogging(sys.stdout)
 from django.core.wsgi import get_wsgi_application
 
 this = sys.modules[__name__]

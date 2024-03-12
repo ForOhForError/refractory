@@ -47,7 +47,7 @@ def build_websocket_reverse_proxy_client_protocol(server_instance, override_clie
                 orig_id = mod_id(pkt.id, mod=-1)
                 orig_pkt = server_instance.sent_messages.pop(orig_id, None)
             if override_client_payload:
-                payload = override_client_payload(payload, isBinary=isBinary)
+                payload = override_client_payload(pkt, response_to=orig_pkt).encode().encode()
             server_instance.sendMessage(payload, isBinary=isBinary)
         def onClose(self, wasClean, code, reason):
             server_instance.sendClose(code=1000,reason=reason)
@@ -74,7 +74,7 @@ def build_websocket_reverse_proxy_protocol(addr, host, port, override_server_pay
                 if pkt and pkt.id:
                     self.sent_messages[pkt.id] = pkt
                 if override_server_payload:
-                    payload = override_server_payload(payload, isBinary=isBinary)
+                    payload = override_server_payload(pkt).encode().encode()
                 self.client_instance.sendMessage(payload, isBinary=isBinary)
 
         def onClose(self, wasClean, code, reason):
@@ -95,8 +95,8 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
         self.ws_proxy = WebSocketResource(factory)
         self.rev_proxy = proxy.ReverseProxyResource(self.host, self.port, b"/"+self.path)
 
-    def rewrite_socketio_response(self, payload, isBinary=False, response_to=None):
-        return vtt_interaction.rewrite_template_payload(payload, isBinary=isBinary, response_to=response_to)
+    def rewrite_socketio_response(self, pkt, response_to=None):
+        return vtt_interaction.rewrite_template_payload(pkt, response_to=response_to)
 
     def render(self, request):
         return self.rev_proxy.render(request)
