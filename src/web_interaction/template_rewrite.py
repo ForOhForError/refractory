@@ -84,7 +84,7 @@ class TemplateOverwriter(html.parser.HTMLParser):
 
     def handle_startendtag(self, tag, attrs):
         ordered_attrs = self.fix_handlebar_attrs(attrs)
-        element = Element(tag=tag, attrs=ordered_attrs, end=True)
+        element = Element(tag=tag, attrs=ordered_attrs, start_end=True)
         self.current.put_child(element)
 
     def handle_starttag(self, tag, attrs):
