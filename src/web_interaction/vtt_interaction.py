@@ -27,10 +27,8 @@ def rewrite_template_payload(payload, response_to=None):
                         text_payload = first_data.get('html')
                         success = first_data.get('success')
                         if text_payload:
-                            print(text_payload)
                             parse.feed(text_payload)
                             recon = parse.reconstructed
-                            print(recon)
                             return Packet(
                                 packet_type=payload.packet_type, 
                                 data=[{"html":recon, "success":success}], 

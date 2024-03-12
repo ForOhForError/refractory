@@ -71,24 +71,24 @@ class TemplateOverwriter(html.parser.HTMLParser):
             output = output.replace(f"{REPLACEMENT_STRING}_{i}_", self.replacements[i], 1)
         return output
 
-    def fix_handlebar_attrs(self, attrs):
+    def fix_handlebar_attrs(self, attrs, attr_ranges=[]):
         text = self.get_starttag_text()
         new_attrs = OrderedDict()
-        for entry in attrs:
-            key, value = entry
-            ix = text.find(key)
-            if ix > 0 and text[ix-1] != " ":
-                key = text[ix-1]+key
+        for ix in range(len(attrs)):
+            key, value = attrs[ix]
+            start, _ = attr_ranges[ix]
+            if start > 0 and text[start-1] != " ": #fix keys starting with /
+                key = text[start-1]+key
             new_attrs[key] = value
         return new_attrs
 
-    def handle_startendtag(self, tag, attrs):
-        ordered_attrs = self.fix_handlebar_attrs(attrs)
+    def handle_startendtag(self, tag, attrs, attr_ranges=[]):
+        ordered_attrs = self.fix_handlebar_attrs(attrs, attr_ranges=attr_ranges)
         element = Element(tag=tag, attrs=ordered_attrs, start_end=True)
         self.current.put_child(element)
 
-    def handle_starttag(self, tag, attrs):
-        ordered_attrs = self.fix_handlebar_attrs(attrs)
+    def handle_starttag(self, tag, attrs, attr_ranges=[]):
+        ordered_attrs = self.fix_handlebar_attrs(attrs, attr_ranges=attr_ranges)
         element = Element(tag=tag, attrs=ordered_attrs)
         self.current.put_child(element)
         self.current = element
@@ -119,3 +119,48 @@ class TemplateOverwriter(html.parser.HTMLParser):
 
     def unknown_decl(self, data):
         self.current.put_child(Element(data=data))
+    
+    # slightly modified from python source, to pass attribute index ranges
+    def parse_starttag(self, i):
+        self._HTMLParser__starttag_text = None
+        endpos = self.check_for_whole_start_tag(i)
+        if endpos < 0:
+            return endpos
+        rawdata = self.rawdata
+        self._HTMLParser__starttag_text = rawdata[i:endpos]
+
+        # Now parse the data between i+1 and j into a tag and attrs
+        attrs = []
+        attr_ranges = []
+        match = html.parser.tagfind_tolerant.match(rawdata, i+1)
+        assert match, 'unexpected call to parse_starttag()'
+        k = match.end()
+        self.lasttag = tag = match.group(1).lower()
+        while k < endpos:
+            m = html.parser.attrfind_tolerant.match(rawdata, k)
+            if not m:
+                break
+            attrname, rest, attrvalue = m.group(1, 2, 3)
+            if not rest:
+                attrvalue = None
+            elif attrvalue[:1] == '\'' == attrvalue[-1:] or \
+                 attrvalue[:1] == '"' == attrvalue[-1:]:
+                attrvalue = attrvalue[1:-1]
+            if attrvalue:
+                attrvalue = unescape(attrvalue)
+            attrs.append((attrname.lower(), attrvalue))
+            attr_ranges.append((m.start()-i, m.end()-i))
+            k = m.end()
+
+        end = rawdata[k:endpos].strip()
+        if end not in (">", "/>"):
+            self.handle_data(rawdata[i:endpos])
+            return endpos
+        if end.endswith('/>'):
+            # XHTML-style empty tag: <span attr="value" />
+            self.handle_startendtag(tag, attrs, attr_ranges=attr_ranges)
+        else:
+            self.handle_starttag(tag, attrs, attr_ranges=attr_ranges)
+            if tag in self.CDATA_CONTENT_ELEMENTS:
+                self.set_cdata_mode(tag)
+        return endpos
