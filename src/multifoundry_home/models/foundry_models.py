@@ -11,6 +11,8 @@ import json
 DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
 
+from web_server import INSTANCE_PATH
+
 class FoundryInstance(models.Model):
     instance_name = models.CharField(max_length=30)
     instance_slug = models.CharField(max_length=30, null=True, validators=[validate_unicode_slug], unique=True)
@@ -47,7 +49,7 @@ class FoundryInstance(models.Model):
             config_obj = {}
         config_obj.update({
             "port": port,
-            "routePrefix": self.instance_slug
+            "routePrefix": INSTANCE_PATH+"/"+self.instance_slug
         })
         with open(config_file_path, "w") as config_file:
             config_file.write(json.dumps(config_obj))

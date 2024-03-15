@@ -17,7 +17,11 @@ from django.core.wsgi import get_wsgi_application
 this = sys.modules[__name__]
 
 this.foundry_instances = {}
-this.multifoundry = None
+this.multifoundry_root = None
+this.multifoundry_instances = None
+
+MANAGEMENT_PATH = "manage"
+INSTANCE_PATH = web_interaction.foundry_resource.INSTANCE_PATH
 
 def get_unassigned_port():
     if len(this.foundry_instances) == 0:
@@ -29,10 +33,11 @@ def add_foundry_instance(foundry_instance):
     port = get_unassigned_port()
     instance_slug_bytes = foundry_instance.instance_slug.encode()
     os.makedirs(foundry_instance.data_path, exist_ok=True)
+    foundry_instance.inject_config()
     foundry = web_interaction.foundry_resource.FoundryResource(
-        foundry_instance, port=port
+        foundry_instance, port=port, log=True
     )
-    this.multifoundry.putChild(instance_slug_bytes, foundry)
+    this.multifoundry_instances.putChild(instance_slug_bytes, foundry)
     this.foundry_instances[foundry_instance.instance_name] = foundry
     print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
     
@@ -48,12 +53,15 @@ class HomeResource(Resource):
             return b"No instance active"
 
 def run():
-    this.multifoundry = Resource()
-    site = Site(this.multifoundry)
+    this.multifoundry_root = Resource()
+    this.multifoundry_instances = Resource()
+    site = Site(this.multifoundry_root)
 
     resource = WSGIResource(reactor, reactor.getThreadPool(), get_wsgi_application())
-    this.multifoundry.putChild(b"manage",resource)
-    this.multifoundry.putChild(b"", HomeResource())
+    this.multifoundry_root.putChild(MANAGEMENT_PATH.encode(), resource)
+    this.multifoundry_root.putChild(INSTANCE_PATH.encode(), this.multifoundry_instances)
+    this.multifoundry_instances.putChild(b"", HomeResource())
+    this.multifoundry_root.putChild(b"", HomeResource())
 
     reactor.listenTCP(8080, site)
     reactor.run()

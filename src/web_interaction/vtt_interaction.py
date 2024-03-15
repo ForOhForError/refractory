@@ -11,7 +11,6 @@ from socketio.packet import Packet
 
 class SocketioMessageCode(Enum):
     JOIN_DATA_RESPONSE = 430
-    TEMPLATE_RESPONSE = 432
 
 from web_interaction.template_rewrite import TemplateOverwriter
 

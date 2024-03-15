@@ -15,6 +15,8 @@ import json
 
 from socketio.packet import Packet
 
+INSTANCE_PATH = "instances"
+
 def to_socketio_packet(payload):
     if isinstance(payload, bytes):
         str_payload = payload.decode('utf8')
@@ -115,7 +117,7 @@ class FoundryResource(SocketIOReverseProxy):
         self.foundry_instance = foundry_instance
         self.port = port
         self.host = host
-        self.path = foundry_instance.instance_slug.encode()
+        self.path = (INSTANCE_PATH+"/"+foundry_instance.instance_slug).encode()
         super().__init__(self.host, self.port, self.path)
         data_path = self.foundry_instance.data_path
         self.foundry_instance.inject_config(port)
