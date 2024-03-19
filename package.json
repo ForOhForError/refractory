@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "gencss": "npx tailwindcss -i ./static/multifoundry/css/input.css -o ./static/multifoundry/css/styles.css"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.36",
+    "tailwindcss": "^3.4.1"
+  }
+}

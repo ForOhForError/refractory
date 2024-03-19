@@ -12,13 +12,12 @@ from socketio.packet import Packet
 class SocketioMessageCode(Enum):
     JOIN_DATA_RESPONSE = 430
 
-from web_interaction.template_rewrite import TemplateOverwriter
+from web_interaction.template_rewrite import REWRITE_RULES
 
 def rewrite_template_payload(payload, response_to=None):
     if response_to and response_to.data and isinstance(response_to.data, list) and len(response_to.data)==2:
         verb, subject = response_to.data
         if verb == 'template':
-            parse = TemplateOverwriter()
             if payload.data:
                 if isinstance(payload.data, list) and len(payload.data) > 0:
                     first_data = payload.data[0]
@@ -26,13 +25,13 @@ def rewrite_template_payload(payload, response_to=None):
                         text_payload = first_data.get('html')
                         success = first_data.get('success')
                         if text_payload:
-                            parse.feed(text_payload)
-                            recon = parse.reconstructed
-                            return Packet(
-                                packet_type=payload.packet_type, 
-                                data=[{"html":recon, "success":success}], 
-                                namespace=payload.namespace, id=payload.id
-                            )
+                            if subject in REWRITE_RULES:
+                                rewritten_html = REWRITE_RULES[subject](text_payload)
+                                return Packet(
+                                    packet_type=payload.packet_type, 
+                                    data=[{"html": rewritten_html, "success":success}], 
+                                    namespace=payload.namespace, id=payload.id
+                                )
     return payload
 
 def login(base_url, user:str="", password:str=""):
