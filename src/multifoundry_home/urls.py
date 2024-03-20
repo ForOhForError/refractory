@@ -1,6 +1,6 @@
 from django.urls import path
-from django.views.generic import TemplateView
+from .views import RefractoryLoginView
 
 urlpatterns = [
-    path('test/', TemplateView.as_view(template_name="test_page.html")),
+    path('login/', RefractoryLoginView.as_view()),
 ]
