@@ -34,9 +34,9 @@ def rewrite_template_payload(payload, response_to=None):
                                 )
     return payload
 
-def login(base_url, user:str="", password:str=""):
+def login(foundry_instance, user:str="", password:str=""):
     with requests.Session() as session:
-        login_url = f"{base_url}/join"
+        login_url = f"{foundry_instance.server_facing_base_url}/join"
         session.get(
             login_url
         )
@@ -46,7 +46,7 @@ def login(base_url, user:str="", password:str=""):
             "adminPassword":"",
             "action":"join"
         }
-        join_info = get_join_info(base_url, session.cookies.get('session',None))
+        join_info = get_join_info(foundry_instance)
         login_res = session.post(
             login_url,
             data = form_body
@@ -61,8 +61,49 @@ def login(base_url, user:str="", password:str=""):
         else:
             return None #flask.redirect("/manage")
 
+def wait_for_ready(foundry_instance):
+    with requests.Session() as session:
+        while True:
+            try:
+                base_url = f"{foundry_instance.server_facing_base_url}"
+                res = session.get(
+                    base_url
+                )
+                break
+            except Exception:
+                pass
+
+def activate_license(foundry_instance):
+    with requests.Session() as session:
+        license_url = f"{foundry_instance.server_facing_base_url}/license"
+        session.get(
+            license_url
+        )
+        try:
+            if foundry_instance.foundry_license:
+                form_body = {
+                    "licenseKey":foundry_instance.foundry_license.license_key,
+                    "action":"enterKey"
+                }
+                license_res = session.post(
+                    license_url,
+                    data = form_body
+                )
+                if license_res.ok:
+                    try:
+                        return True
+                    except Exception:
+                        print(license_res.content)
+                        return False
+                else:
+                    return False
+        except Exception:
+            return False
+    return False
+
 def get_join_info(foundry_instance):
     try:
+        base_url = foundry_instance.server_facing_base_url
         if not session_id:
             login_url = f"{base_url}/join"
             session_id = requests.get(login_url).cookies.get('session', None)

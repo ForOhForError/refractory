@@ -11,7 +11,8 @@ import json
 DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
 
-from web_server import INSTANCE_PATH
+from web_interaction.foundry_resource import INSTANCE_PATH
+from web_server import get_foundry_resource
 
 class FoundryInstance(models.Model):
     instance_name = models.CharField(max_length=30)
@@ -36,7 +37,20 @@ class FoundryInstance(models.Model):
     def data_path(self):
         return os.path.join(DATA_PATH_BASE,self.instance_slug)
     
+    @property
+    def user_facing_base_url(self):
+        url = f"/{INSTANCE_PATH}/{self.instance_slug}"
+        print(url)
+        return url
     
+    @property
+    def server_facing_base_url(self):
+        foundry_resource = get_foundry_resource(self)
+        if foundry_resource:
+            url = f"{foundry_resource.get_base_url()}/{INSTANCE_PATH}/{self.instance_slug}"
+            print(url)
+            return url
+        return None
     
     def inject_config(self, port=30000):
         config_path = os.path.join(self.data_path, "Config")

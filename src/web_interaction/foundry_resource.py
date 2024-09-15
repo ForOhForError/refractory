@@ -1,7 +1,7 @@
 
 import subprocess
 from twisted.internet import reactor
-from twisted.web import proxy
+from twisted.web import proxy, error
 
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketClientFactory,\
     WebSocketServerProtocol, WebSocketClientProtocol
@@ -16,6 +16,10 @@ import json
 from socketio.packet import Packet
 
 INSTANCE_PATH = "instances"
+
+DENY_USER_FACING = set([
+    "/login",
+])
 
 def to_socketio_packet(payload):
     if isinstance(payload, bytes):
@@ -104,9 +108,13 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
         return self.rev_proxy.render(request)
 
     def getChild(self, path, request):
-        if path.decode().startswith(self.ws_path):
+        path_string = path.decode()
+        if path_string.startswith(self.ws_path):
             return self.ws_proxy
         else:
+            for path_check in DENY_USER_FACING:
+                if path_string.startswith(path_check):
+                    return error.Error(403, b"Forbidden", b"")
             return self.rev_proxy.getChild(path, request)
 
 class FoundryResource(SocketIOReverseProxy):
@@ -129,6 +137,9 @@ class FoundryResource(SocketIOReverseProxy):
             ["node", foundry_instance.foundry_version.executable_path, f"--dataPath={data_path}", "--noupdate"], 
             **kwargs
         )
+        
+    def get_base_url(self):
+        return f"http://{self.host}:{self.port}"
 
     def login_flask(self):
         return vtt_interaction.login(f"http://{self.host}:{self.port}/{self.path.decode()}")

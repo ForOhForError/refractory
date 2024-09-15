@@ -13,6 +13,9 @@ import os.path
 from twisted.web.util import redirectTo
 
 from django.core.wsgi import get_wsgi_application
+from web_interaction.foundry_resource import INSTANCE_PATH
+
+from web_interaction import vtt_interaction
 
 this = sys.modules[__name__]
 
@@ -21,7 +24,6 @@ this.multifoundry_root = None
 this.multifoundry_instances = None
 
 MANAGEMENT_PATH = "manage"
-INSTANCE_PATH = web_interaction.foundry_resource.INSTANCE_PATH
 
 def get_unassigned_port():
     if len(this.foundry_instances) == 0:
@@ -39,6 +41,8 @@ def add_foundry_instance(foundry_instance):
     )
     this.multifoundry_instances.putChild(instance_slug_bytes, foundry)
     this.foundry_instances[foundry_instance.instance_name] = foundry
+    vtt_interaction.wait_for_ready(foundry_instance)
+    vtt_interaction.activate_license(foundry_instance)
     print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
     
 def get_foundry_resource(foundry_instance):

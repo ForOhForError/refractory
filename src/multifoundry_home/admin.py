@@ -19,6 +19,7 @@ import requests
 from twisted.internet import reactor
 from web_interaction import foundry_interaction
 from web_server import add_foundry_instance
+from web_interaction import vtt_interaction
 
 FOUNDRY_SESSION_COOKIE = "foundry_session"
 FOUNDRY_USERNAME_COOKIE = "foundry_username"
@@ -59,6 +60,7 @@ class FoundryLoginFormView(FormView, UserPassesTestMixin):
     template_name = "foundry_login.html"
     form_class = FoundryLoginForm
     success_url = "/manage/admin"
+    redirect_authenticated_user = True
     
     def test_func(self):
         return self.request.user.is_superuser
