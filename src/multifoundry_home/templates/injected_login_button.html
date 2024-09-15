@@ -1,3 +1,5 @@
+{% load static %}
+
 <form class="application standard-form framed" autocomplete="off">
     <div class="form-group" style="--maxWidth: 1040px">
         <select style="display:none;" name="userid"></select>
@@ -5,7 +7,7 @@
         <button style="display:none;" type="button" name="join" class="bright">
         <footer class="form-footer">
             <button class="bright" id="refractroy-login" onclick="window.location.href='/manage/login?next=/'">
-                <i class="fas fa-check"></i>
+                <img style="height:20px;margin:5px;" src="{% static 'multifoundry/img/Refractory20Mono.png' %}">
                 <label>Log in with Refractory</label>
             </button>
         </footer>
