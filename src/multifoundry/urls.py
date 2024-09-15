@@ -23,7 +23,7 @@ from django.views.static import serve as static_serve
 from multifoundry_home.admin import adminsite
 
 urlpatterns = [
-    path('admin/', adminsite.urls),
     path('', include('multifoundry_home.urls')),
+    path('admin/', adminsite.urls),
     re_path(r"^static/(?P<path>.*)$", static_serve, {"document_root": settings.STATIC_ROOT}),
 ]

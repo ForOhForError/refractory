@@ -63,16 +63,16 @@ class Element:
             recon += self.ending_tag.reconstruct()
         return recon
     
-    def search(self, tag:str, attr:typing.Dict[str,str], results:typing.List["Element"]=None, limit_depth=None, _level=0):
+    def search(self, tag:str, attr:typing.Dict[str,str], results:typing.List["Element"]=None, limit_matches=-1, limit_depth=None, _level=0):
         if results == None:
             results = []
         if limit_depth and _level > limit_depth:
             return results
         if self.tag == tag and all([key in self.attrs and attr[key] in self.attrs[key] for key in attr]):
-            print(f"{str(self)} matched tag {tag} and attrs {attr}")
-            results.append(self)
+            if limit_matches < 0 or len(results) < limit_matches:
+                results.append(self)
         for ele in self.children:
-            ele.search(tag, attr, results=results, limit_depth=limit_depth, _level=_level+1)
+            ele.search(tag, attr, results=results, limit_matches=limit_matches, limit_depth=limit_depth, _level=_level+1)
         return results
 
 class TemplateOverwriter(html.parser.HTMLParser):

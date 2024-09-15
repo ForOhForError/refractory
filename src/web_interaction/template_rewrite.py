@@ -29,6 +29,7 @@ def overwrite_entirely(input):
     return render_to_string("injected_login_button.html")
 
 REWRITE_RULES = {
-    "templates/setup/join-game.hbs": make_rewrite_rule("div", {"class":"join-form"}), #v10
-    "templates/setup/parts/join-form.hbs": overwrite_entirely, #v11
+    "templates/setup/join-game.html": make_rewrite_rule("div", {"class":"app"}, limit_matches=1), #v9
+    "templates/setup/join-game.hbs": make_rewrite_rule("div", {"class":"join-form"}), #v11
+    "templates/setup/parts/join-form.hbs": overwrite_entirely, #v12
 }
