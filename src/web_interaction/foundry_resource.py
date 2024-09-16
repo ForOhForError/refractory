@@ -17,10 +17,6 @@ from socketio.packet import Packet
 
 INSTANCE_PATH = "instances"
 
-DENY_USER_FACING = set([
-    "/login",
-])
-
 def to_socketio_packet(payload):
     if isinstance(payload, bytes):
         str_payload = payload.decode('utf8')
@@ -112,9 +108,6 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
         if path_string.startswith(self.ws_path):
             return self.ws_proxy
         else:
-            for path_check in DENY_USER_FACING:
-                if path_string.startswith(path_check):
-                    return error.Error(403, b"Forbidden", b"")
             return self.rev_proxy.getChild(path, request)
 
 class FoundryResource(SocketIOReverseProxy):
