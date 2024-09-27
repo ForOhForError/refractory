@@ -144,6 +144,8 @@ def load_licences(modeladmin, request, queryset):
         print("not logged in")
 
 class FoundryLicenseAdmin(admin.ModelAdmin):
+    list_display = ["license_name"]
+    
     actions = [load_licences]
 
 @admin.action(description=_("Launch Instances"))

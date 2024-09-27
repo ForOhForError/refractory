@@ -2,7 +2,6 @@ from django.db import models
 from django.core.validators import RegexValidator, validate_unicode_slug
 from django.utils.translation import gettext_lazy as _
 
-from web_interaction import foundry_interaction
 import requests
 import os
 
@@ -12,7 +11,8 @@ DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
 
 from web_interaction.foundry_resource import INSTANCE_PATH
-from web_server import get_foundry_resource
+from web_server import get_foundry_resource, get_active_instance_names, remove_foundry_instance
+from web_interaction.vtt_interaction import get_join_info
 
 class FoundryInstance(models.Model):
     instance_name = models.CharField(max_length=30)
@@ -40,7 +40,6 @@ class FoundryInstance(models.Model):
     @property
     def user_facing_base_url(self):
         url = f"/{INSTANCE_PATH}/{self.instance_slug}"
-        print(url)
         return url
     
     @property
@@ -48,7 +47,6 @@ class FoundryInstance(models.Model):
         foundry_resource = get_foundry_resource(self)
         if foundry_resource:
             url = f"{foundry_resource.get_base_url()}/{INSTANCE_PATH}/{self.instance_slug}"
-            print(url)
             return url
         return None
     
@@ -77,11 +75,35 @@ class FoundryInstance(models.Model):
         else:
             license_obj = {}
         license_string = None
-        if self.foundry_license:
+        try:
             license_string = self.foundry_license.license_key.replace("-","")
+        except FoundryLicense.DoesNotExist:
+            pass
         if license_obj.get("license", None) != license_string:
             if os.path.exists(license_file_path):
                 os.remove(license_file_path)
+                
+    def assign_license_if_able(self):
+        try:
+            if self.foundry_license:
+                return True
+        except FoundryLicense.DoesNotExist:
+            available_license = FoundryLicense.find_free_if_available()
+            if available_license:
+                available_license.instance = self
+                available_license.save()
+            print(available_license)
+    
+    def get_worlds(self):
+        worlds_path = os.path.join(self.data_path, "Data", "worlds")
+        all_worlds = []
+        for file_handle in os.listdir(worlds_path):
+            world_path = os.path.join(worlds_path, file_handle)
+            if os.path.isdir(world_path):
+                world_json_path = os.path.join(world_path, "world.json")
+                if os.path.exists(world_json_path) and os.path.isfile(world_json_path):
+                    all_worlds.append(os.path.basename(world_path))
+        return all_worlds
 
 class FoundryVersion(models.Model):
     class UpdateType(models.TextChoices):
@@ -136,6 +158,7 @@ foundry_license_validator = RegexValidator(FOUNDRY_LICENSE_REGEX, _("Foundry Lic
 
 class FoundryLicense(models.Model):
     license_key = models.CharField(max_length=29, validators=[foundry_license_validator])
+    license_name = models.CharField(max_length=255, default="")
     instance = models.OneToOneField(
         "FoundryInstance",
         on_delete=models.SET_NULL,
@@ -144,3 +167,18 @@ class FoundryLicense(models.Model):
         related_name="foundry_license",
     )
     
+    @classmethod
+    def find_free_if_available(cls):
+        free_licenses = cls.objects.exclude(instance__instance_name__in=get_active_instance_names())
+        if free_licenses.exists():
+            return free_licenses.first()
+        else:
+            available_instances = []
+            for instance_name in get_active_instance_names():
+                try:
+                    instance = FoundryInstance.objects.get(instance_name=instance_name)
+                    join_info = get_join_info(instance)
+                    print(join_info)
+                except FoundryInstance.DoesNotExist:
+                    pass
+        return None

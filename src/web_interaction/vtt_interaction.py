@@ -104,14 +104,32 @@ def activate_license(foundry_instance):
 def get_join_info(foundry_instance):
     try:
         base_url = foundry_instance.server_facing_base_url
-        if not session_id:
-            login_url = f"{base_url}/join"
-            session_id = requests.get(login_url).cookies.get('session', None)
+        login_url = f"{base_url}/join"
+        session_id = requests.get(login_url).cookies.get('session', None)
         if session_id:
             ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
             with connect(ws_url) as websocket:
                 websocket.send('40')
                 websocket.send('420["getJoinData"]')
+                for message in websocket:
+                    code_match = re.search("^\d*", message)
+                    code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
+                    if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
+                        return json.loads(data)[0]
+    except Exception as ex:
+        pass
+    return None
+
+def get_setup_info(foundry_instance):
+    try:
+        base_url = foundry_instance.server_facing_base_url
+        login_url = f"{base_url}/join"
+        session_id = requests.get(login_url).cookies.get('session', None)
+        if session_id:
+            ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
+            with connect(ws_url) as websocket:
+                websocket.send('40')
+                websocket.send('420["getSetupData"]')
                 for message in websocket:
                     code_match = re.search("^\d*", message)
                     code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]

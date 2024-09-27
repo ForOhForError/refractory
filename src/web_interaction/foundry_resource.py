@@ -6,7 +6,7 @@ from twisted.web import proxy, error
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketClientFactory,\
     WebSocketServerProtocol, WebSocketClientProtocol
 
-from autobahn.twisted.resource import WebSocketResource
+from autobahn.twisted.resource import WebSocketResource, Resource
 
 from web_interaction import vtt_interaction, foundry_interaction
 
@@ -37,6 +37,12 @@ def mod_id(id, mod=1):
     if len(id) > 1:
         new_id += id[1:]
     return int(new_id)
+
+class BlackholeResource(Resource):
+    isLeaf = True
+    def render(self, request):
+        request.setResponseCode(403)
+        return b""
 
 def build_websocket_reverse_proxy_client_protocol(server_instance, override_client_payload=None):
     class WebsocketReverseProxyClientProtocol(WebSocketClientProtocol):
@@ -110,6 +116,10 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
         else:
             return self.rev_proxy.getChild(path, request)
 
+DENY_ACTIONS = {
+    "join": ["shutdown", "login", "adminLogin"],
+}
+
 class FoundryResource(SocketIOReverseProxy):
     def __init__(
         self, foundry_instance, host="localhost", port=30000,
@@ -120,15 +130,19 @@ class FoundryResource(SocketIOReverseProxy):
         self.host = host
         self.path = (INSTANCE_PATH+"/"+foundry_instance.instance_slug).encode()
         super().__init__(self.host, self.port, self.path)
+        self.blackhole = BlackholeResource()
         data_path = self.foundry_instance.data_path
         self.foundry_instance.inject_config(port)
-        if log:
-            kwargs = {"stdout":subprocess.DEVNULL}
+        if not log:
+            kwargs = {
+                "stdout":subprocess.DEVNULL,
+                "stderr":subprocess.DEVNULL,
+            }
         else:
             kwargs = {}
         self.process = subprocess.Popen(
             ["node", foundry_instance.foundry_version.executable_path, f"--dataPath={data_path}", "--noupdate"], 
-            **kwargs
+            **kwargs,
         )
         
     def get_base_url(self):
@@ -136,3 +150,32 @@ class FoundryResource(SocketIOReverseProxy):
 
     def login_flask(self):
         return vtt_interaction.login(f"http://{self.host}:{self.port}/{self.path.decode()}")
+    
+    def end_process(self):
+        try:
+            self.process.terminate()
+        except Exception:
+            self.process.kill()
+    
+    def check_for_deny(self, request):
+        if request.method == b"POST":
+            try:
+                amended_path = request.path.decode().split("/")[3]
+                print(amended_path)
+                if amended_path in DENY_ACTIONS:
+                    body = request.content.read().decode()
+                    request.content.seek(0)
+                    json_body = json.loads(body)
+                    action = json_body.get("action")
+                    if action in DENY_ACTIONS[amended_path]:
+                        print(request.path, request.action, "denied")
+                        return True
+            except Exception:
+                pass
+        return False
+    
+    def getChild(self, path, request):
+        if self.check_for_deny(request):
+            return self.blackhole
+        else:
+            return super().getChild(path, request)

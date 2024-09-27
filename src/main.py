@@ -20,11 +20,11 @@ def start_log():
 
 def main():
     
-    #twlog.startLogging(sys.stdout)
-    start_log()
+    #log.startLogging(sys.stdout)
+    #start_log()
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multifoundry.settings')
-    logging.basicConfig(level=logging.NOTSET)
+    logging.basicConfig(level=logging.INFO)
     web_server.run()
 
 if __name__ == "__main__":
