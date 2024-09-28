@@ -14,7 +14,7 @@ class SocketioMessageCode(Enum):
 
 from web_interaction.template_rewrite import REWRITE_RULES
 
-def rewrite_template_payload(payload, response_to=None):
+def rewrite_template_payload(payload, instance, response_to=None):
     if response_to and response_to.data and isinstance(response_to.data, list) and len(response_to.data)==2:
         verb, subject = response_to.data
         if verb == 'template':
@@ -26,7 +26,7 @@ def rewrite_template_payload(payload, response_to=None):
                         success = first_data.get('success')
                         if text_payload:
                             if subject in REWRITE_RULES:
-                                rewritten_html = REWRITE_RULES[subject](text_payload)
+                                rewritten_html = REWRITE_RULES[subject](text_payload, instance)
                                 return Packet(
                                     packet_type=payload.packet_type, 
                                     data=[{"html": rewritten_html, "success":success}], 

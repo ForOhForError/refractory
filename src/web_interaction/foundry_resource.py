@@ -42,7 +42,7 @@ class BlackholeResource(Resource):
     isLeaf = True
     def render(self, request):
         request.setResponseCode(403)
-        return b""
+        return b"Blocked by Refractory"
 
 def build_websocket_reverse_proxy_client_protocol(server_instance, override_client_payload=None):
     class WebsocketReverseProxyClientProtocol(WebSocketClientProtocol):
@@ -104,7 +104,7 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
         self.rev_proxy = proxy.ReverseProxyResource(self.host, self.port, b"/"+self.path)
 
     def rewrite_socketio_response(self, pkt, response_to=None):
-        return vtt_interaction.rewrite_template_payload(pkt, response_to=response_to)
+        return pkt
 
     def render(self, request):
         return self.rev_proxy.render(request)
@@ -157,18 +157,20 @@ class FoundryResource(SocketIOReverseProxy):
         except Exception:
             self.process.kill()
     
+    def rewrite_socketio_response(self, pkt, response_to=None):
+        return vtt_interaction.rewrite_template_payload(pkt, response_to=response_to, instance=self.foundry_instance)
+    
     def check_for_deny(self, request):
         if request.method == b"POST":
             try:
                 amended_path = request.path.decode().split("/")[3]
-                print(amended_path)
                 if amended_path in DENY_ACTIONS:
+                    actions_to_deny = DENY_ACTIONS[amended_path]
                     body = request.content.read().decode()
                     request.content.seek(0)
                     json_body = json.loads(body)
                     action = json_body.get("action")
-                    if action in DENY_ACTIONS[amended_path]:
-                        print(request.path, request.action, "denied")
+                    if action in actions_to_deny:
                         return True
             except Exception:
                 pass
