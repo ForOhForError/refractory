@@ -1,0 +1,25 @@
+{% extends "_foundry_portal_base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- Active Worlds Section -->
+<section class="panel" id="active-worlds">
+    <h2>Active Worlds</h2>
+    <div class="worlds-gallery" id="worlds-gallery">
+        <!-- Dynamic world cards injected here -->
+    </div>
+</section>
+
+<!-- Instance Status Section -->
+<section class="panel" id="instance-status">
+    <h2>Instances</h2>
+    <div class="status-key">
+        <div class="status-container"><span class="status-indicator active"></span>Active</div>
+        <div class="status-container"><span class="status-indicator online"></span>Online</div>
+        <div class="status-container"><span class="status-indicator offline"></span>Offline</div>
+    </div>
+    <div class="instance-list" id="instance-list">
+        <!-- Dynamic instance cards injected here -->
+    </div>
+</section>
+{% endblock %}

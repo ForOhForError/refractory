@@ -1,6 +1,7 @@
 from twisted.internet import reactor
 from twisted.web.resource import Resource
 from twisted.web.wsgi import WSGIResource
+from twisted.web.server import Site
 
 import web_interaction.foundry_resource
 from urllib.parse import quote_plus

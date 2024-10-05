@@ -14,5 +14,5 @@ class RefractoryLoginView(LoginView):
         messages.error(self.request,'Invalid username or password')
         return self.render_to_response(self.get_context_data(form=form))
 
-class AboutView(TemplateView):
-    template_name = "foundry_portal_panels.html"
+class PanelView(TemplateView):
+    template_name = "status_panel.html"
