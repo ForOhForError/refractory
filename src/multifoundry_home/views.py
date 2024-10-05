@@ -4,6 +4,8 @@ from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.contrib import messages
 
+from multifoundry_home.models import FoundryInstance
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # Create your views here.
 class RefractoryLoginView(LoginView):
@@ -14,5 +16,12 @@ class RefractoryLoginView(LoginView):
         messages.error(self.request,'Invalid username or password')
         return self.render_to_response(self.get_context_data(form=form))
 
-class PanelView(TemplateView):
+class PanelView(LoginRequiredMixin, TemplateView):
     template_name = "status_panel.html"
+    login_url = "/manage/login/"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add in a QuerySet of all the books
+        context["instances"] = FoundryInstance.objects.all()
+        return context

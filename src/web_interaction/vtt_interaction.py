@@ -1,5 +1,4 @@
 import requests
-#import flask
 from websockets.sync.client import connect
 import re
 import json
@@ -7,8 +6,6 @@ from enum import Enum
 from bs4 import BeautifulSoup
 import bs4.element
 from web_server import get_foundry_resource
-
-from socketio.packet import Packet
 
 class SocketioMessageCode(Enum):
     JOIN_DATA_RESPONSE = 430

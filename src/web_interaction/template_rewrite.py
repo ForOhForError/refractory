@@ -1,5 +1,7 @@
 from web_interaction.template_parse import Element, TemplateOverwriter
 from django.template.loader import render_to_string
+from socketio.packet import Packet
+
 
 def rewrite_template_payload(payload, instance, response_to=None):
     if response_to and response_to.data and isinstance(response_to.data, list) and len(response_to.data)==2:

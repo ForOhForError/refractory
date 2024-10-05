@@ -6,7 +6,14 @@
 <section class="panel" id="active-worlds">
     <h2>Active Worlds</h2>
     <div class="worlds-gallery" id="worlds-gallery">
-        <!-- Dynamic world cards injected here -->
+        {% for instance in instances %}
+            {% for world in instance.worlds %}
+                <div class="world-card">
+                    <h3>{{world.title}}</h3>
+                    <p>Hosted on {{instance.display_name}}</p>
+                </div>
+            {% endfor %}
+        {% endfor %}
     </div>
 </section>
 
@@ -19,7 +26,14 @@
         <div class="status-container"><span class="status-indicator offline"></span>Offline</div>
     </div>
     <div class="instance-list" id="instance-list">
-        <!-- Dynamic instance cards injected here -->
+        {% for instance in instances %}
+            <div class="instance-card" name="{{ instance.instance_name }}">
+                <div class="instance-info-container" name="{{ instance.instance_name }}">
+                    <h3>{{ instance.display_name }}</h3>
+                    <p>{{ instance.is_active }}</p>
+                </div>
+            </div>
+        {% endfor %}
     </div>
 </section>
 {% endblock %}

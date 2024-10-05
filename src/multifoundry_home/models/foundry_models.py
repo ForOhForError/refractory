@@ -15,8 +15,9 @@ from web_server import get_foundry_resource, get_active_instance_names, remove_f
 from web_interaction.vtt_interaction import get_join_info, get_setup_info, activate_license, wait_for_ready
 
 class FoundryInstance(models.Model):
-    instance_name = models.CharField(max_length=30)
+    instance_name = models.CharField(max_length=30, unique=True)
     instance_slug = models.CharField(max_length=30, null=True, validators=[validate_unicode_slug], unique=True)
+    display_name = models.CharField(max_length=256, null=True)
     foundry_version = models.ForeignKey(
         "FoundryVersion",
         blank=True,
@@ -26,7 +27,7 @@ class FoundryInstance(models.Model):
     )
     
     def __str__(self):
-        return self.instance_name
+        return self.display_name if self.display_name else self.instance_name
     
     @classmethod
     def synch_to_multifoundry_hosting(cls):
@@ -49,6 +50,10 @@ class FoundryInstance(models.Model):
             url = f"{foundry_resource.get_base_url()}/{INSTANCE_PATH}/{self.instance_slug}"
             return url
         return None
+    
+    @property
+    def is_active(self):
+        return self.instance_name in get_active_instance_names()
     
     def inject_config(self, port=30000):
         config_path = os.path.join(self.data_path, "Config")
@@ -96,7 +101,8 @@ class FoundryInstance(models.Model):
                 available_license.save()
             print(available_license)
     
-    def get_worlds(self):
+    @property
+    def worlds(self):
         worlds_path = os.path.join(self.data_path, "Data", "worlds")
         all_worlds = []
         for file_handle in os.listdir(worlds_path):
@@ -104,7 +110,8 @@ class FoundryInstance(models.Model):
             if os.path.isdir(world_path):
                 world_json_path = os.path.join(world_path, "world.json")
                 if os.path.exists(world_json_path) and os.path.isfile(world_json_path):
-                    all_worlds.append(os.path.basename(world_path))
+                    with open(world_json_path) as world_json:
+                        all_worlds.append(json.load(world_json))
         return all_worlds
     
     def get_join_info(self):
@@ -118,6 +125,10 @@ class FoundryInstance(models.Model):
     
     def wait_for_ready(self):
         wait_for_ready(self)
+        
+    @classmethod
+    def active_instances(cls):
+        return cls.objects.filter(instance_name__in=get_active_instance_names())
 
 class FoundryVersion(models.Model):
     class UpdateType(models.TextChoices):
@@ -197,5 +208,5 @@ class FoundryLicense(models.Model):
                         return instance.foundry_license, instance
                     print(join_info)
                 except FoundryInstance.DoesNotExist:
-                    print("dne")
+                    pass
         return None, None
