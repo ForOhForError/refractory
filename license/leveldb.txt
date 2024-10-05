@@ -1,0 +1,1 @@
+leveldb license information is included in the leveldb.py source file
