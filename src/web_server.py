@@ -12,7 +12,7 @@ import os.path
 from twisted.web.util import redirectTo
 
 from django.core.wsgi import get_wsgi_application
-from web_interaction.foundry_resource import INSTANCE_PATH, DefaultResponseSite
+from web_interaction.foundry_resource import INSTANCE_PATH
 
 this = sys.modules[__name__]
 
@@ -70,7 +70,7 @@ class HomeResource(Resource):
 def run():
     this.multifoundry_root = Resource()
     this.multifoundry_instances = Resource()
-    site = DefaultResponseSite(this.multifoundry_root)
+    site = Site(this.multifoundry_root)
 
     resource = WSGIResource(reactor, reactor.getThreadPool(), get_wsgi_application())
     this.multifoundry_root.putChild(MANAGEMENT_PATH.encode(), resource)
