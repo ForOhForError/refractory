@@ -152,8 +152,15 @@ class FoundryLicenseAdmin(admin.ModelAdmin):
 def launch_instances(modeladmin, request, queryset):
     for instance in queryset:
         add_foundry_instance(instance)
+
+@admin.action(description=_("Log Instance Info"))
+def log_info(modeladmin, request, queryset):
+    for instance in queryset:
+        print(instance.instance_name)
+        print(instance.get_join_info())
+        print(instance.get_setup_info())
 class FoundryInstanceAdmin(admin.ModelAdmin):
-    actions = [launch_instances]
+    actions = [launch_instances, log_info]
 
 adminsite.register(FoundryInstance,FoundryInstanceAdmin)
 adminsite.register(FoundryLicense,FoundryLicenseAdmin)

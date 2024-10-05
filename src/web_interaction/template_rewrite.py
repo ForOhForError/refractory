@@ -1,6 +1,26 @@
 from web_interaction.template_parse import Element, TemplateOverwriter
 from django.template.loader import render_to_string
 
+def rewrite_template_payload(payload, instance, response_to=None):
+    if response_to and response_to.data and isinstance(response_to.data, list) and len(response_to.data)==2:
+        verb, subject = response_to.data
+        if verb == 'template':
+            if payload.data:
+                if isinstance(payload.data, list) and len(payload.data) > 0:
+                    first_data = payload.data[0]
+                    if isinstance(first_data, dict):
+                        text_payload = first_data.get('html')
+                        success = first_data.get('success')
+                        if text_payload:
+                            if subject in REWRITE_RULES:
+                                rewritten_html = REWRITE_RULES[subject](text_payload, instance)
+                                return Packet(
+                                    packet_type=payload.packet_type, 
+                                    data=[{"html": rewritten_html, "success":success}], 
+                                    namespace=payload.namespace, id=payload.id
+                                )
+    return payload
+
 def rewrite_element_with_template(input_body:str, django_template_name:str, *search_args, foundry_instance=None, **search_kwargs) -> str:
     parse = TemplateOverwriter()
     parse.feed(input_body)
@@ -42,5 +62,4 @@ REWRITE_RULES = {
     "templates/setup/join-game.hbs": make_login_rewrite_rule("div", {"class":"join-form"}), #v11
     "templates/setup/parts/join-form.hbs": make_overwrite_rule("injected_login_button.html"), #v12
     # Return to Setup
-    
 }

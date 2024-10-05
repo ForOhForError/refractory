@@ -2,13 +2,15 @@
 import subprocess
 from twisted.internet import reactor
 from twisted.web import proxy, error
+from twisted.web.server import Site
+
 
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketClientFactory,\
     WebSocketServerProtocol, WebSocketClientProtocol
 
 from autobahn.twisted.resource import WebSocketResource, Resource
 
-from web_interaction import vtt_interaction, foundry_interaction
+from web_interaction import template_rewrite
 
 import os.path
 import json
@@ -147,18 +149,17 @@ class FoundryResource(SocketIOReverseProxy):
         
     def get_base_url(self):
         return f"http://{self.host}:{self.port}"
-
-    def login_flask(self):
-        return vtt_interaction.login(f"http://{self.host}:{self.port}/{self.path.decode()}")
     
     def end_process(self):
         try:
             self.process.terminate()
+            self.process.communicate()
         except Exception:
             self.process.kill()
+            self.process.communicate()
     
     def rewrite_socketio_response(self, pkt, response_to=None):
-        return vtt_interaction.rewrite_template_payload(pkt, response_to=response_to, instance=self.foundry_instance)
+        return template_rewrite.rewrite_template_payload(pkt, response_to=response_to, instance=self.foundry_instance)
     
     def check_for_deny(self, request):
         if request.method == b"POST":

@@ -6,6 +6,7 @@ import json
 from enum import Enum
 from bs4 import BeautifulSoup
 import bs4.element
+from web_server import get_foundry_resource
 
 from socketio.packet import Packet
 
@@ -13,26 +14,6 @@ class SocketioMessageCode(Enum):
     JOIN_DATA_RESPONSE = 430
 
 from web_interaction.template_rewrite import REWRITE_RULES
-
-def rewrite_template_payload(payload, instance, response_to=None):
-    if response_to and response_to.data and isinstance(response_to.data, list) and len(response_to.data)==2:
-        verb, subject = response_to.data
-        if verb == 'template':
-            if payload.data:
-                if isinstance(payload.data, list) and len(payload.data) > 0:
-                    first_data = payload.data[0]
-                    if isinstance(first_data, dict):
-                        text_payload = first_data.get('html')
-                        success = first_data.get('success')
-                        if text_payload:
-                            if subject in REWRITE_RULES:
-                                rewritten_html = REWRITE_RULES[subject](text_payload, instance)
-                                return Packet(
-                                    packet_type=payload.packet_type, 
-                                    data=[{"html": rewritten_html, "success":success}], 
-                                    namespace=payload.namespace, id=payload.id
-                                )
-    return payload
 
 def login(foundry_instance, user:str="", password:str=""):
     with requests.Session() as session:
@@ -103,39 +84,45 @@ def activate_license(foundry_instance):
 
 def get_join_info(foundry_instance):
     try:
-        base_url = foundry_instance.server_facing_base_url
-        login_url = f"{base_url}/join"
-        session_id = requests.get(login_url).cookies.get('session', None)
-        if session_id:
-            ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
-            with connect(ws_url) as websocket:
-                websocket.send('40')
-                websocket.send('420["getJoinData"]')
-                for message in websocket:
-                    code_match = re.search("^\d*", message)
-                    code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
-                    if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
-                        return json.loads(data)[0]
+        if get_foundry_resource(foundry_instance):
+            base_url = foundry_instance.server_facing_base_url
+            login_url = f"{base_url}/join"
+            session_id = requests.get(login_url).cookies.get('session', None)
+            if session_id:
+                print(session_id)
+                ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
+                with connect(ws_url) as websocket:
+                    websocket.send('40')
+                    websocket.send('420["getJoinData"]')
+                    while True:
+                        message = websocket.recv(timeout=1)
+                        print("message:", message)
+                        code_match = re.search("^\d*", message)
+                        code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
+                        if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
+                            return json.loads(data)[0]
     except Exception as ex:
-        pass
-    return None
+        print(ex)
+    return {}
 
 def get_setup_info(foundry_instance):
     try:
-        base_url = foundry_instance.server_facing_base_url
-        login_url = f"{base_url}/join"
-        session_id = requests.get(login_url).cookies.get('session', None)
-        if session_id:
-            ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
-            with connect(ws_url) as websocket:
-                websocket.send('40')
-                websocket.send('420["getSetupData"]')
-                for message in websocket:
-                    code_match = re.search("^\d*", message)
-                    code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
-                    if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
-                        return json.loads(data)[0]
+        if get_foundry_resource(foundry_instance):
+            base_url = foundry_instance.server_facing_base_url
+            login_url = f"{base_url}/join"
+            session_id = requests.get(login_url).cookies.get('session', None)
+            if session_id:
+                ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
+                with connect(ws_url) as websocket:
+                    websocket.send('40')
+                    websocket.send('420["getSetupData"]')
+                    while True:
+                        message = websocket.recv(timeout=1)
+                        code_match = re.search("^\d*", message)
+                        code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
+                        if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
+                            return json.loads(data)[0]
     except Exception as ex:
         pass
-    return None
+    return {}
 

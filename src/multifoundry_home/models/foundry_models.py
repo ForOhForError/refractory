@@ -12,7 +12,7 @@ RELEASE_PATH_BASE = "foundry_releases"
 
 from web_interaction.foundry_resource import INSTANCE_PATH
 from web_server import get_foundry_resource, get_active_instance_names, remove_foundry_instance
-from web_interaction.vtt_interaction import get_join_info
+from web_interaction.vtt_interaction import get_join_info, get_setup_info, activate_license, wait_for_ready
 
 class FoundryInstance(models.Model):
     instance_name = models.CharField(max_length=30)
@@ -88,9 +88,11 @@ class FoundryInstance(models.Model):
             if self.foundry_license:
                 return True
         except FoundryLicense.DoesNotExist:
-            available_license = FoundryLicense.find_free_if_available()
+            available_license, to_shutdown = FoundryLicense.find_free_if_available()
             if available_license:
                 available_license.instance = self
+                if to_shutdown:
+                    remove_foundry_instance(to_shutdown)
                 available_license.save()
             print(available_license)
     
@@ -104,6 +106,18 @@ class FoundryInstance(models.Model):
                 if os.path.exists(world_json_path) and os.path.isfile(world_json_path):
                     all_worlds.append(os.path.basename(world_path))
         return all_worlds
+    
+    def get_join_info(self):
+        return get_join_info(self)
+    
+    def get_setup_info(self):
+        return get_setup_info(self)
+    
+    def activate_license(self):
+        return activate_license(self)
+    
+    def wait_for_ready(self):
+        wait_for_ready(self)
 
 class FoundryVersion(models.Model):
     class UpdateType(models.TextChoices):
@@ -171,14 +185,17 @@ class FoundryLicense(models.Model):
     def find_free_if_available(cls):
         free_licenses = cls.objects.exclude(instance__instance_name__in=get_active_instance_names())
         if free_licenses.exists():
-            return free_licenses.first()
+            return free_licenses.first(), None
         else:
             available_instances = []
+            print(get_active_instance_names())
             for instance_name in get_active_instance_names():
                 try:
                     instance = FoundryInstance.objects.get(instance_name=instance_name)
                     join_info = get_join_info(instance)
+                    if len(join_info.get("activeUsers", [])) == 0:
+                        return instance.foundry_license, instance
                     print(join_info)
                 except FoundryInstance.DoesNotExist:
-                    pass
-        return None
+                    print("dne")
+        return None, None
