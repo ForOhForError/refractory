@@ -102,8 +102,7 @@ class FoundryInstance(models.Model):
                 if to_shutdown:
                     remove_foundry_instance(to_shutdown)
                 available_license.save()
-            print(available_license)
-    
+
     @property
     def worlds(self):
         worlds_path = os.path.join(self.data_path, "Data", "worlds")
@@ -205,14 +204,12 @@ class FoundryLicense(models.Model):
             return free_licenses.first(), None
         else:
             available_instances = []
-            print(get_active_instance_names())
             for instance_name in get_active_instance_names():
                 try:
                     instance = FoundryInstance.objects.get(instance_name=instance_name)
                     join_info = get_join_info(instance)
                     if len(join_info.get("activeUsers", [])) == 0:
                         return instance.foundry_license, instance
-                    print(join_info)
                 except FoundryInstance.DoesNotExist:
                     pass
         return None, None

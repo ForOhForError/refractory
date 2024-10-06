@@ -32,7 +32,7 @@
                 {% if instance.is_active %} 
                     <div 
                         class="instance-info-container" name="{{ instance.instance_name }}"
-                        onclick="window.open('/instances/{{instance.instance_slug}}/','_blank')" 
+                        onclick="window.open('/instances/{{instance.instance_slug}}','_blank')"
                     >
                         <h3>{{ instance.display_name }}</h3>
                         <p>{{ instance.is_active }}</p>

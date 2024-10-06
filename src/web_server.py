@@ -63,10 +63,7 @@ def get_active_instance_names():
 class HomeResource(Resource):
     isLeaf = True
     def render(self, request):
-        if len(this.foundry_instances) == 1:
-            return redirectTo(list(this.foundry_instances.values())[0].path, request)
-        else:
-            return b"No instance active"
+        return redirectTo(b"/manage/panel", request)
 
 def run():
     this.multifoundry_root = Resource()

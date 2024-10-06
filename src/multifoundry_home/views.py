@@ -63,12 +63,9 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
 
 @login_required
 def activate_instance(request, instance_slug):
-    print(request.method)
     if request.method == "POST":
         try:
-            print("method is post")
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            print("got instance")
             instance.activate()
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied

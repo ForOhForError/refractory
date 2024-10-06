@@ -29,8 +29,6 @@ def vtt_login(django_request, foundry_instance, foundry_user):
             data = form_body
         )
         if login_res.ok:
-            redirect_url = login_res.json().get("redirect")
-            redirect_url = redirect_url.replace(foundry_instance.server_facing_base_url, foundry_instance.user_facing_base_url)
             return login_res.json().get("redirect"), dict(session.cookies)
         else:
             return None, None
