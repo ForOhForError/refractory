@@ -6,9 +6,18 @@
 <section class="panel" id="active-worlds">
     <h2>Select A User</h2>
     <div>
-    {% for user in users %}
-        <input type="button" onclick="location.href='/manage/vtt_login/{{ instance.instance_slug }}/{{ forloop.counter0 }}';" value={{user.user_name}} />
-    {% endfor %}
+        {% for user in users %}
+            <div>
+                <input type="button" onclick="location.href='/manage/vtt_login/{{ instance.instance_slug }}/{{ forloop.counter0 }}';" value={{user.user_name}} />
+            </div>
+        {% endfor %}
     </div>
+    {% if user.is_staff %}
+        {% if not users %}
+            <div>
+                <input type="button" onclick="location.href='/manage/admin_login/{{ instance.instance_slug }}/';" value="login as admin" />
+            </div>
+        {% endif %}
+    {% endif %}
 </section>
 {% endblock %}

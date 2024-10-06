@@ -144,7 +144,14 @@ class FoundryResource(SocketIOReverseProxy):
         else:
             kwargs = {}
         self.process = subprocess.Popen(
-            ["node", foundry_instance.foundry_version.executable_path, f"--dataPath={data_path}", "--noupdate", f"--adminPassword={foundry_instance.admin_pass}"], 
+            [
+                "node", 
+                foundry_instance.foundry_version.executable_path, 
+                f"--dataPath={data_path}", 
+                "--noupdate", 
+                f"--adminPassword={foundry_instance.admin_pass}",
+                f"--adminKey={foundry_instance.admin_pass}",
+            ],
             **kwargs,
         )
         

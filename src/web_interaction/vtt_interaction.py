@@ -12,26 +12,49 @@ class SocketioMessageCode(Enum):
 
 from web_interaction.template_rewrite import REWRITE_RULES
 
-def vtt_login(django_request, foundry_instance, foundry_user):
+def vtt_login(foundry_instance, foundry_user):
     with requests.Session() as session:
-        login_url = f"{foundry_instance.server_facing_base_url}/join"
-        session.get(
-            login_url
-        )
-        form_body = {
-            "userid":foundry_user.user_id,
-            "password":foundry_user.user_password,
-            "adminPassword":"",
-            "action":"join"
-        }
-        login_res = session.post(
-            login_url,
-            data = form_body
-        )
-        if login_res.ok:
-            return login_res.json().get("redirect"), dict(session.cookies)
-        else:
-            return None, None
+        return vtt_session_login(foundry_instance, foundry_user, session)
+
+def vtt_session_login(foundry_instance, foundry_user, session):
+    login_url = f"{foundry_instance.server_facing_base_url}/join"
+    session.get(
+        login_url
+    )
+    form_body = {
+        "userid":foundry_user.user_id,
+        "password":foundry_user.user_password,
+        "adminPassword":"",
+        "action":"join"
+    }
+    login_res = session.post(
+        login_url,
+        data = form_body
+    )
+    if login_res.ok:
+        return login_res.json().get("redirect"), dict(session.cookies)
+    else:
+        return None, None
+    
+def admin_login(foundry_instance):
+    with requests.Session() as session:
+        return admin_session_login(foundry_instance, session)
+
+def admin_session_login(foundry_instance, session):
+    login_url = f"{foundry_instance.server_facing_base_url}/auth"
+    session.get(login_url)
+    admin_pass = foundry_instance.admin_pass
+    form_body = {
+        "adminPassword": admin_pass,
+        "adminKey": admin_pass,
+        "action": "adminAuth"
+    }
+    login_url = f"{foundry_instance.server_facing_base_url}/auth"
+    login_res = session.post(
+        login_url,
+        data = form_body
+    )
+    return foundry_instance.user_facing_base_url, dict(session.cookies)
 
 def wait_for_ready(foundry_instance):
     with requests.Session() as session:

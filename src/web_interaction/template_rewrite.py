@@ -63,5 +63,7 @@ REWRITE_RULES = {
     "templates/setup/join-game.html": make_login_rewrite_rule("div", {"class":"app"}, limit_matches=1), #v9
     "templates/setup/join-game.hbs": make_login_rewrite_rule("div", {"class":"join-form"}), #v11
     "templates/setup/parts/join-form.hbs": make_overwrite_rule("injected_login_button.html"), #v12
-    # Return to Setup
+    # Admin Auth
+    "templates/setup/setup-authentication.html": make_overwrite_rule("injected_login_button.html"),
+    "templates/setup/setup-authentication.hbs": make_overwrite_rule("injected_login_button.html"), #v12
 }

@@ -9,8 +9,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 
 from django.core.exceptions import PermissionDenied
-from web_interaction.vtt_interaction import vtt_login
+from web_interaction.vtt_interaction import vtt_login, admin_login
 from django.shortcuts import redirect
+
+from django.contrib.admin.views.decorators import staff_member_required
 
 # Create your views here.
 class RefractoryLoginView(LoginView):
@@ -50,7 +52,27 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
         managed_users = ManagedFoundryUser.objects.filter(owner=request.user, instance=instance, world_id=world_id)
         if len(managed_users) > user_ix:
             managed_user = managed_users[user_ix]
-            redirect_url, cookies = vtt_login(request, instance, managed_user)
+            redirect_url, cookies = vtt_login(instance, managed_user)
+            if redirect_url:
+                redirect_res = redirect(redirect_url)
+                for key, value in cookies.items():
+                    if value:
+                        redirect_res.set_cookie(key=key, value=value, samesite='Strict', secure=False)
+                return redirect_res
+    except FoundryInstance.DoesNotExist:
+        raise PermissionDenied
+    raise PermissionDenied
+
+@login_required
+@staff_member_required
+def login_to_instance_as_admin(request, instance_slug):
+    try:
+        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+        join_info = instance.get_join_info()
+        if join_info:
+            pass
+        else:
+            redirect_url, cookies = admin_login(instance)
             if redirect_url:
                 redirect_res = redirect(redirect_url)
                 for key, value in cookies.items():
