@@ -17,10 +17,14 @@ from web_interaction.vtt_interaction import get_join_info, get_setup_info, activ
 
 from django.conf import settings
 
+def generate_default_password():
+    return secrets.token_hex(32)
+
 class FoundryInstance(models.Model):
     instance_name = models.CharField(max_length=30, unique=True)
     instance_slug = models.CharField(max_length=30, null=True, validators=[validate_unicode_slug], unique=True)
     display_name = models.CharField(max_length=256, null=True)
+    admin_pass = models.CharField(max_length=256, default=generate_default_password)
     foundry_version = models.ForeignKey(
         "FoundryVersion",
         blank=True,
@@ -58,7 +62,7 @@ class FoundryInstance(models.Model):
     def is_active(self):
         return self.instance_name in get_active_instance_names()
     
-    def inject_config(self, port=30000):
+    def inject_config(self, port=30000, clear_admin_pass=False):
         config_path = os.path.join(self.data_path, "Config")
         os.makedirs(config_path, exist_ok=True)
         config_file_path = os.path.join(config_path, "options.json")
@@ -71,6 +75,11 @@ class FoundryInstance(models.Model):
             "port": port,
             "routePrefix": INSTANCE_PATH+"/"+self.instance_slug
         })
+        if clear_admin_pass:
+            admin_file_path = os.path.join(config_path, "admin.txt")
+            if os.path.exists(admin_file_path):
+                os.remove(admin_file_path)
+            
         with open(config_file_path, "w") as config_file:
             config_file.write(json.dumps(config_obj))
     
@@ -214,13 +223,10 @@ class FoundryLicense(models.Model):
                     pass
         return None, None
 
-def generate_default_password():
-    return secrets.token_urlsafe(32)
-
 class ManagedFoundryUser(models.Model):
     user_name = models.CharField(max_length=255, default="")
     user_id = models.CharField(max_length=255, default="")
-    user_password = models.CharField(max_length=32, default=generate_default_password)
+    user_password = models.CharField(max_length=64, default=generate_default_password)
     world_id = models.CharField(max_length=255, default="")
     instance = models.ForeignKey(FoundryInstance, on_delete=models.CASCADE)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)

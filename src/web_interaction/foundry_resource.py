@@ -14,6 +14,7 @@ from web_interaction import template_rewrite
 
 import os.path
 import json
+import urllib.parse
 
 from socketio.packet import Packet
 
@@ -120,6 +121,7 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
 
 DENY_ACTIONS = {
     "join": ["shutdown", "login", "adminLogin"],
+    "auth": ["adminAuth", "auth"],
 }
 
 class FoundryResource(SocketIOReverseProxy):
@@ -134,7 +136,6 @@ class FoundryResource(SocketIOReverseProxy):
         super().__init__(self.host, self.port, self.path)
         self.blackhole = BlackholeResource()
         data_path = self.foundry_instance.data_path
-        self.foundry_instance.inject_config(port)
         if not log:
             kwargs = {
                 "stdout":subprocess.DEVNULL,
@@ -143,7 +144,7 @@ class FoundryResource(SocketIOReverseProxy):
         else:
             kwargs = {}
         self.process = subprocess.Popen(
-            ["node", foundry_instance.foundry_version.executable_path, f"--dataPath={data_path}", "--noupdate"], 
+            ["node", foundry_instance.foundry_version.executable_path, f"--dataPath={data_path}", "--noupdate", f"--adminPassword={foundry_instance.admin_pass}"], 
             **kwargs,
         )
         
@@ -169,8 +170,12 @@ class FoundryResource(SocketIOReverseProxy):
                     actions_to_deny = DENY_ACTIONS[amended_path]
                     body = request.content.read().decode()
                     request.content.seek(0)
-                    json_body = json.loads(body)
-                    action = json_body.get("action")
+                    try:
+                        json_body = json.loads(body)
+                        action = json_body.get("action")
+                    except json.decoder.JSONDecodeError:
+                        qs_body = urllib.parse.parse_qs(body)
+                        action = qs_body.get("action")[0]
                     if action in actions_to_deny:
                         return True
             except Exception:

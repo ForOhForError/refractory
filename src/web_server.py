@@ -33,7 +33,7 @@ def add_foundry_instance(foundry_instance):
     port = get_unassigned_port()
     instance_slug_bytes = foundry_instance.instance_slug.encode()
     os.makedirs(foundry_instance.data_path, exist_ok=True)
-    foundry_instance.inject_config()
+    foundry_instance.inject_config(port=port, clear_admin_pass=True)
     foundry_instance.clear_unmatched_license()
     foundry_instance.assign_license_if_able()
     foundry = web_interaction.foundry_resource.FoundryResource(
