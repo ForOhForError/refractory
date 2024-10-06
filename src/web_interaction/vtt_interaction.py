@@ -12,32 +12,28 @@ class SocketioMessageCode(Enum):
 
 from web_interaction.template_rewrite import REWRITE_RULES
 
-def login(foundry_instance, user:str="", password:str=""):
+def vtt_login(django_request, foundry_instance, foundry_user):
     with requests.Session() as session:
         login_url = f"{foundry_instance.server_facing_base_url}/join"
         session.get(
             login_url
         )
         form_body = {
-            "userid":user,
-            "password":password,
+            "userid":foundry_user.user_id,
+            "password":foundry_user.user_password,
             "adminPassword":"",
             "action":"join"
         }
-        join_info = get_join_info(foundry_instance)
         login_res = session.post(
             login_url,
             data = form_body
         )
         if login_res.ok:
-            try:
-                res = None #flask.redirect(login_res.json().get("redirect"))
-                # res.set_cookie('session', session.cookies.get('session',''))
-                return res
-            except Exception:
-                return login_res.content
+            redirect_url = login_res.json().get("redirect")
+            redirect_url = redirect_url.replace(foundry_instance.server_facing_base_url, foundry_instance.user_facing_base_url)
+            return login_res.json().get("redirect"), dict(session.cookies)
         else:
-            return None #flask.redirect("/manage")
+            return None, None
 
 def wait_for_ready(foundry_instance):
     with requests.Session() as session:
@@ -71,7 +67,6 @@ def activate_license(foundry_instance):
                     try:
                         return True
                     except Exception:
-                        print(license_res.content)
                         return False
                 else:
                     return False
@@ -86,20 +81,18 @@ def get_join_info(foundry_instance):
             login_url = f"{base_url}/join"
             session_id = requests.get(login_url).cookies.get('session', None)
             if session_id:
-                print(session_id)
                 ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
                 with connect(ws_url) as websocket:
                     websocket.send('40')
                     websocket.send('420["getJoinData"]')
                     while True:
                         message = websocket.recv(timeout=1)
-                        print("message:", message)
                         code_match = re.search("^\d*", message)
                         code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
                         if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
                             return json.loads(data)[0]
     except Exception as ex:
-        print(ex)
+        pass
     return {}
 
 def get_setup_info(foundry_instance):

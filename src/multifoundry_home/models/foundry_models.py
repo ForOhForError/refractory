@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 import requests
 import os
+import secrets
 
 import json
 
@@ -11,8 +12,10 @@ DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
 
 from web_interaction.foundry_resource import INSTANCE_PATH
-from web_server import get_foundry_resource, get_active_instance_names, remove_foundry_instance
+from web_server import get_foundry_resource, get_active_instance_names, add_foundry_instance, remove_foundry_instance
 from web_interaction.vtt_interaction import get_join_info, get_setup_info, activate_license, wait_for_ready
+
+from django.conf import settings
 
 class FoundryInstance(models.Model):
     instance_name = models.CharField(max_length=30, unique=True)
@@ -126,6 +129,9 @@ class FoundryInstance(models.Model):
     def wait_for_ready(self):
         wait_for_ready(self)
         
+    def activate(self):
+        add_foundry_instance(self)
+        
     @classmethod
     def active_instances(cls):
         return cls.objects.filter(instance_name__in=get_active_instance_names())
@@ -210,3 +216,14 @@ class FoundryLicense(models.Model):
                 except FoundryInstance.DoesNotExist:
                     pass
         return None, None
+
+def generate_default_password():
+    return secrets.token_urlsafe(32)
+
+class ManagedFoundryUser(models.Model):
+    user_name = models.CharField(max_length=255, default="")
+    user_id = models.CharField(max_length=255, default="")
+    user_password = models.CharField(max_length=32, default=generate_default_password)
+    world_id = models.CharField(max_length=255, default="")
+    instance = models.ForeignKey(FoundryInstance, on_delete=models.CASCADE)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)

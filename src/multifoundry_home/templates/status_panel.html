@@ -1,6 +1,7 @@
 {% extends "_foundry_portal_base.html" %}
 {% load static %}
 
+
 {% block content %}
 <!-- Active Worlds Section -->
 <section class="panel" id="active-worlds">
@@ -28,10 +29,25 @@
     <div class="instance-list" id="instance-list">
         {% for instance in instances %}
             <div class="instance-card" name="{{ instance.instance_name }}">
-                <div class="instance-info-container" name="{{ instance.instance_name }}">
-                    <h3>{{ instance.display_name }}</h3>
-                    <p>{{ instance.is_active }}</p>
-                </div>
+                {% if instance.is_active %} 
+                    <div 
+                        class="instance-info-container" name="{{ instance.instance_name }}"
+                        onclick="window.open('/instances/{{instance.instance_slug}}/','_blank')" 
+                    >
+                        <h3>{{ instance.display_name }}</h3>
+                        <p>{{ instance.is_active }}</p>
+                    </div>
+                {% else %}
+                    <form action="/manage/activate/{{instance.instance_slug}}/" method="post">
+                        {% csrf_token %}
+                        <div class="instance-info-container" name="{{ instance.instance_name }}">
+                            <h3>{{ instance.display_name }}</h3>
+                            <p>{{ instance.is_active }}</p>
+                            <input type="submit" name="Activate" value="Activate"/>
+                        </div>
+                    </form>
+                {% endif %}
+                    
             </div>
         {% endfor %}
     </div>

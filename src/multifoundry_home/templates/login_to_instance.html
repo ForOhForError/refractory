@@ -1,0 +1,18 @@
+{% extends "_foundry_portal_base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- Active Worlds Section -->
+<section />
+<section class="panel" id="active-worlds">
+    <h2>Select A User</h2>
+    <div>
+    {% for user in users %}
+        <input type="button" onclick="location.href='/manage/vtt_login/{{ instance.instance_slug }}/{{ forloop.counter0 }}';">
+            <h3>{{user.user_name}}</h3>
+        </input>
+    {% endfor %}
+    </div>
+</section>
+<section />
+{% endblock %}

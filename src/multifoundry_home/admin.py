@@ -1,7 +1,8 @@
 from django.contrib import admin
 
 from multifoundry_home.models.foundry_models import (
-    FoundryInstance, FoundryVersion, FoundryLicense
+    FoundryInstance, FoundryVersion, FoundryLicense,
+    ManagedFoundryUser
 )
 
 from django.utils.translation import gettext_lazy as _
@@ -143,6 +144,9 @@ def load_licences(modeladmin, request, queryset):
     else:
         print("not logged in")
 
+class ManagedUserAdmin(admin.ModelAdmin):
+    list_display = ["user_name", "world_id"]
+
 class FoundryLicenseAdmin(admin.ModelAdmin):
     list_display = ["license_name"]
     
@@ -165,4 +169,6 @@ class FoundryInstanceAdmin(admin.ModelAdmin):
 adminsite.register(FoundryInstance,FoundryInstanceAdmin)
 adminsite.register(FoundryLicense,FoundryLicenseAdmin)
 adminsite.register(FoundryVersion,FoundryVersionAdmin)
+adminsite.register(ManagedFoundryUser,ManagedUserAdmin)
+
 

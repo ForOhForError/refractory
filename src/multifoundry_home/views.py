@@ -4,8 +4,13 @@ from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.contrib import messages
 
-from multifoundry_home.models import FoundryInstance
+from multifoundry_home.models import FoundryInstance, ManagedFoundryUser
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+
+from django.core.exceptions import PermissionDenied
+from web_interaction.vtt_interaction import vtt_login
+from django.shortcuts import redirect
 
 # Create your views here.
 class RefractoryLoginView(LoginView):
@@ -25,3 +30,46 @@ class PanelView(LoginRequiredMixin, TemplateView):
         # Add in a QuerySet of all the books
         context["instances"] = FoundryInstance.objects.all()
         return context
+
+@login_required
+def login_to_instance(request, instance_slug):
+    try:
+        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+        world_id = instance.get_join_info().get("world", {}).get("id")
+        managed_users = ManagedFoundryUser.objects.filter(owner=request.user, instance=instance, world_id=world_id)
+        return render(request, "login_to_instance.html", {"users":managed_users, "instance": instance})
+    except FoundryInstance.DoesNotExist:
+        raise PermissionDenied
+    raise PermissionDenied
+
+@login_required
+def login_to_instance_as_user(request, instance_slug, user_ix):
+    try:
+        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+        world_id = instance.get_join_info().get("world", {}).get("id")
+        managed_users = ManagedFoundryUser.objects.filter(owner=request.user, instance=instance, world_id=world_id)
+        if len(managed_users) > user_ix:
+            managed_user = managed_users[user_ix]
+            redirect_url, cookies = vtt_login(request, instance, managed_user)
+            if redirect_url:
+                redirect_res = redirect(redirect_url)
+                for key, value in cookies.items():
+                    if value:
+                        redirect_res.set_cookie(key=key, value=value, samesite='Strict', secure=False)
+                return redirect_res
+    except FoundryInstance.DoesNotExist:
+        raise PermissionDenied
+    raise PermissionDenied
+
+@login_required
+def activate_instance(request, instance_slug):
+    print(request.method)
+    if request.method == "POST":
+        try:
+            print("method is post")
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            print("got instance")
+            instance.activate()
+        except FoundryInstance.DoesNotExist:
+            raise PermissionDenied
+    return  redirect("/manage/panel")
