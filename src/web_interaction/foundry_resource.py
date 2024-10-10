@@ -171,10 +171,10 @@ class FoundryResource(SocketIOReverseProxy):
     def end_process(self):
         try:
             self.process.terminate()
-            self.process.communicate()
+            self.process.communicate(timeout=1)
         except Exception:
             self.process.kill()
-            self.process.communicate()
+            self.process.communicate(timeout=1)
     
     def rewrite_socketio_response(self, pkt, response_to=None):
         return template_rewrite.rewrite_template_payload(pkt, response_to=response_to, instance=self.foundry_instance)

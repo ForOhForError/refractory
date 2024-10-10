@@ -7,6 +7,11 @@ import re
 
 import typing
 
+"""
+Everything in here is a bodge. Oh well.
+Features parsing (some of) xml with regexes. Take that, zalgo post.
+"""
+
 DOUBLE_BRACE_SIMPLE_MATCH = re.compile(r"{{2,2}.*?}{2,2}")
 REPLACEMENT_STRING = "A_VERY_LONG_STRING_USED_TO_REPLACE_DOUBLE_BRACES".lower()
 
@@ -145,7 +150,7 @@ class TemplateOverwriter(html.parser.HTMLParser):
         self.current.put_child(Element(data=decl))
 
     def handle_pi(self, data):
-        sself.current.put_child(Element(data=data))
+        self.current.put_child(Element(data=data))
 
     def unknown_decl(self, data):
         self.current.put_child(Element(data=data))

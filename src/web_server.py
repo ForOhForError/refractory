@@ -40,9 +40,10 @@ class RefractoryServer:
         if not len(self.foundry_resources):
             return MIN_INTERNAL_PORT
         assigned_ports = [instance.port for instance in self.foundry_resources.values()]
-        for port in range(MIN_INTERNAL_PORT, max(assigned_ports)):
+        for port in range(MIN_INTERNAL_PORT, max(assigned_ports)+2):
             if port not in assigned_ports: 
                 return port
+        print("port assignment failed")
 
     def run(self, port=8080):
         reactor.listenTCP(port, self.site)
@@ -54,18 +55,15 @@ class RefractoryServer:
     def add_foundry_instance(self, foundry_instance):
         port = self.get_unassigned_port()
         instance_slug_bytes = foundry_instance.instance_slug.encode()
-        os.makedirs(foundry_instance.data_path, exist_ok=True)
-        foundry_instance.inject_config(port=port, clear_admin_pass=True)
-        foundry_instance.clear_unmatched_license()
-        foundry_instance.assign_license_if_able()
-        foundry_res = web_interaction.foundry_resource.FoundryResource(
-            foundry_instance, port=port, log=False
-        )
-        self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
-        self.foundry_resources[foundry_instance.instance_name] = foundry_res
-        foundry_instance.wait_for_ready()
-        foundry_instance.activate_license()
-        print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}")
+        precheck = foundry_instance.pre_activate(port)
+        if precheck:
+            foundry_res = web_interaction.foundry_resource.FoundryResource(
+                foundry_instance, port=port, log=False
+            )
+            self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
+            self.foundry_resources[foundry_instance.instance_name] = foundry_res
+            foundry_instance.post_activate()
+            print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}")
 
     def remove_foundry_instance(self, foundry_instance):
         instance_slug_bytes = foundry_instance.instance_slug.encode()

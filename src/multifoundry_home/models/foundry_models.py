@@ -2,7 +2,9 @@ import json
 import re
 import requests
 import os
+import time
 import secrets
+import shutil
 from enum import Enum
 
 from django.db import models
@@ -24,7 +26,7 @@ RELEASE_PATH_BASE = "foundry_releases"
 class FoundryState(Enum):
     INACTIVE = 0
     LICENSE = 1
-    LICENCE_EULA = 2
+    LICENSE_EULA = 2
     SETUP = 3
     JOIN = 4
     ACTIVE_UNKNOWN = 99
@@ -33,7 +35,7 @@ class SocketioMessageCode(Enum):
     JOIN_DATA_RESPONSE = 430
 
 URL_TO_STATE = {
-    "license": FoundryState.LICENCE_EULA,
+    "license": FoundryState.LICENSE_EULA,
     "setup": FoundryState.SETUP,
     "auth": FoundryState.SETUP,
     "join": FoundryState.JOIN
@@ -72,6 +74,12 @@ class FoundryInstance(models.Model):
     def data_path(self):
         return os.path.join(DATA_PATH_BASE,self.instance_slug)
     
+    def make_instance_folder(self):
+        os.makedirs(self.data_path, exist_ok=True)
+        
+    def delete_instance_folder(self):
+        shutil.rmtree(self.data_path)
+    
     @property
     def user_facing_base_url(self):
         url = f"/{INSTANCE_PATH}/{self.instance_slug}"
@@ -88,7 +96,6 @@ class FoundryInstance(models.Model):
     @property
     def instance_state(self):
         foundry_resource = RefractoryServer.get_server().get_foundry_resource(self)
-        print(f"get instance state! {self.display_name}")
         if foundry_resource:
             response = requests.get(self.server_facing_base_url)
             if LICENSE_STATE_SEARCH_STRING in response.content.decode():
@@ -113,6 +120,16 @@ class FoundryInstance(models.Model):
             user_password="",
             owner=None
         ).save()
+    
+    def pre_activate(self, port):
+        self.inject_config(port=port, clear_admin_pass=True)
+        self.clear_unmatched_license()
+        return self.assign_license_if_able()
+
+    def post_activate(self):
+        self.wait_for_ready()
+        self.activate_license()
+        self.accept_eula_if_able()
     
     @property
     def is_active(self):
@@ -155,7 +172,29 @@ class FoundryInstance(models.Model):
         if license_obj.get("license", None) != license_string:
             if os.path.exists(license_file_path):
                 os.remove(license_file_path)
-                
+    
+    def accept_eula_if_able(self):
+        if self.instance_state == FoundryState.LICENSE_EULA:
+            if self.eula_accepted:
+                with requests.Session() as session:
+                    eula_url = f"{self.server_facing_base_url}/license"
+                    session.get(
+                        eula_url
+                    )
+                    form_body = {
+                        "accept":"on",
+                    }
+                    eula_res = session.post(
+                        eula_url,
+                        data = form_body
+                    )
+                    if eula_res.ok:
+                        print("Accepting EULA automatically, as it has been manually agreed to.")
+                        return True
+            else:
+                print("Cannot accept EULA automatically :(")
+        return False
+    
     def assign_license_if_able(self):
         try:
             if self.foundry_license:
@@ -163,10 +202,12 @@ class FoundryInstance(models.Model):
         except FoundryLicense.DoesNotExist:
             available_license, to_shutdown = FoundryLicense.find_free_if_available()
             if available_license:
-                available_license.instance = self
                 if to_shutdown:
                     RefractoryServer.get_server().remove_foundry_instance(to_shutdown)
+                available_license.instance = self
                 available_license.save()
+                return True
+        return False
 
     @property
     def worlds(self):
@@ -217,7 +258,7 @@ class FoundryInstance(models.Model):
     
     def admin_login(self):
         with requests.Session() as session:
-            return admin_session_login(self, session)
+            return self.admin_session_login(session)
 
     def admin_session_login(self, session):
         login_url = f"{self.server_facing_base_url}/auth"
@@ -239,13 +280,13 @@ class FoundryInstance(models.Model):
         with requests.Session() as session:
             while True:
                 try:
-                    base_url = f"{self.server_facing_base_url}"
+                    base_url = f"{self.server_facing_base_url}/"
                     res = session.get(
                         base_url
                     )
                     break
-                except Exception:
-                    pass
+                except Exception as ex:
+                    time.sleep(0.1)
 
     def activate_license(self):
         with requests.Session() as session:

@@ -10,8 +10,11 @@ from django.contrib.auth.decorators import login_required
 
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
+from django.urls import reverse
 
 from django.contrib.admin.views.decorators import staff_member_required
+
+from multifoundry_home.models import FoundryState
 
 # Create your views here.
 class RefractoryLoginView(LoginView):
@@ -67,10 +70,7 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
 def login_to_instance_as_admin(request, instance_slug):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        join_info = instance.get_join_info()
-        if join_info:
-            pass
-        else:
+        if instance.instance_state == FoundryState.SETUP:
             redirect_url, cookies = instance.admin_login()
             if redirect_url:
                 redirect_res = redirect(redirect_url)
@@ -78,6 +78,9 @@ def login_to_instance_as_admin(request, instance_slug):
                     if value:
                         redirect_res.set_cookie(key=key, value=value, samesite='Strict', secure=False)
                 return redirect_res
+        else:
+            messages.error(request,'Cannot enter as admin in the join state')
+            return redirect(reverse("panel"))
     except FoundryInstance.DoesNotExist:
         raise PermissionDenied
     raise PermissionDenied
@@ -90,4 +93,5 @@ def activate_instance(request, instance_slug):
             instance.activate()
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
-    return  redirect("/manage/panel")
+    messages.info(request, f"Activated instance {instance.display_name}")
+    return redirect("/manage/panel")
