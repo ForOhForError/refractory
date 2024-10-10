@@ -20,7 +20,6 @@ import requests
 from twisted.internet import reactor
 from web_interaction import foundry_interaction
 from web_server import RefractoryServer
-from web_interaction import vtt_interaction
 
 FOUNDRY_SESSION_COOKIE = "foundry_session"
 FOUNDRY_USERNAME_COOKIE = "foundry_username"
