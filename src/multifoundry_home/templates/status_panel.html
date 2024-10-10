@@ -36,6 +36,7 @@
                     >
                         <h3>{{ instance.display_name }}</h3>
                         <p>{{ instance.is_active }}</p>
+                        {{ instance.instance_state }}
                     </div>
                 {% else %}
                     <form action="/manage/activate/{{instance.instance_slug}}/" method="post">

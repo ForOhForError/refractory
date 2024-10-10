@@ -5,7 +5,7 @@ import json
 from enum import Enum
 from bs4 import BeautifulSoup
 import bs4.element
-from web_server import get_foundry_resource
+from web_server import RefractoryServer
 
 class SocketioMessageCode(Enum):
     JOIN_DATA_RESPONSE = 430
@@ -97,7 +97,7 @@ def activate_license(foundry_instance):
 
 def get_join_info(foundry_instance):
     try:
-        if get_foundry_resource(foundry_instance):
+        if RefractoryServer.get_server().get_foundry_resource(foundry_instance):
             base_url = foundry_instance.server_facing_base_url
             login_url = f"{base_url}/join"
             session_id = requests.get(login_url).cookies.get('session', None)
@@ -111,14 +111,22 @@ def get_join_info(foundry_instance):
                         code_match = re.search("^\d*", message)
                         code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
                         if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
-                            return json.loads(data)[0]
+                            join_info = json.loads(data)[0]
+                            world_id = join_info.get("world", {}).get("id", None)
+                            if world_id and not foundry_instance.managedfoundryuser_set.filter(world_id=world_id, managed_gm=True).exists():
+                                gamemaster_candidate_user = join_info.get("users", [{}])[0]
+                                print(gamemaster_candidate_user)
+                                if gamemaster_candidate_user.get("role") == 4:
+                                    user_id, user_name = gamemaster_candidate_user.get("_id"), gamemaster_candidate_user.get("name")
+                                    foundry_instance.register_managed_gm(world_id, user_id, user_name)
+                            return join_info
     except Exception as ex:
         pass
     return {}
 
 def get_setup_info(foundry_instance):
     try:
-        if get_foundry_resource(foundry_instance):
+        if RefractoryServer.get_server().get_foundry_resource(foundry_instance):
             base_url = foundry_instance.server_facing_base_url
             login_url = f"{base_url}/join"
             session_id = requests.get(login_url).cookies.get('session', None)

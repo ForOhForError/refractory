@@ -1,7 +1,8 @@
-import web_server
 import logging
 import os
 import sys
+
+from web_server import RefractoryServer
 
 from twisted.python import log, util
 from twisted.python.log import FileLogObserver, textFromEventDict, _safeFormat
@@ -25,7 +26,7 @@ def main():
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multifoundry.settings')
     logging.basicConfig(level=logging.INFO)
-    web_server.run()
+    RefractoryServer.get_server().run()
 
 if __name__ == "__main__":
     main()

@@ -12,69 +12,81 @@ import os.path
 
 from twisted.web.util import redirectTo
 
-from django.core.wsgi import get_wsgi_application
+from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
 from web_interaction.foundry_resource import INSTANCE_PATH
 
-this = sys.modules[__name__]
-
-this.foundry_instances = {}
-this.multifoundry_root = None
-this.multifoundry_instances = None
-
 MANAGEMENT_PATH = "manage"
-
-def get_unassigned_port():
-    if len(this.foundry_instances) == 0:
-        return 30000
-    else:
-        return max([instance.port for instance in this.foundry_instances.values()])+1
-
-def add_foundry_instance(foundry_instance):
-    port = get_unassigned_port()
-    instance_slug_bytes = foundry_instance.instance_slug.encode()
-    os.makedirs(foundry_instance.data_path, exist_ok=True)
-    foundry_instance.inject_config(port=port, clear_admin_pass=True)
-    foundry_instance.clear_unmatched_license()
-    foundry_instance.assign_license_if_able()
-    foundry = web_interaction.foundry_resource.FoundryResource(
-        foundry_instance, port=port, log=False
-    )
-    this.multifoundry_instances.putChild(instance_slug_bytes, foundry)
-    this.foundry_instances[foundry_instance.instance_name] = foundry
-    foundry_instance.wait_for_ready()
-    foundry_instance.activate_license()
-    print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
-
-def remove_foundry_instance(foundry_instance):
-    instance_slug_bytes = foundry_instance.instance_slug.encode()
-    if this.multifoundry_instances.getStaticEntity(instance_slug_bytes):
-        this.multifoundry_instances.delEntity(instance_slug_bytes)
-    if foundry_instance.instance_name in this.foundry_instances:
-        res = this.foundry_instances.pop(foundry_instance.instance_name)
-        res.end_process()
-        print(f"stopped {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
-
-def get_foundry_resource(foundry_instance):
-    return this.foundry_instances.get(foundry_instance.instance_name, None)
-
-def get_active_instance_names():
-    return this.foundry_instances.keys()
+MIN_INTERNAL_PORT = 30000
+_MODULE = sys.modules[__name__]
 
 class HomeResource(Resource):
     isLeaf = True
     def render(self, request):
         return redirectTo(b"/manage/panel", request)
 
-def run():
-    this.multifoundry_root = Resource()
-    this.multifoundry_instances = Resource()
-    site = Site(this.multifoundry_root)
+class RefractoryServer:
+    def __init__(self):
+        self.foundry_resources = {}
+        self.refractory_root_res = Resource()
+        self.refractory_instances_res = Resource()
+        self.site = Site(self.refractory_root_res)
+        self.django_res= WSGIResource(reactor, reactor.getThreadPool(), get_django_wsgi_application())
+        self.refractory_root_res.putChild(MANAGEMENT_PATH.encode(), self.django_res)
+        self.refractory_root_res.putChild(INSTANCE_PATH.encode(), self.refractory_instances_res)
+        self.refractory_instances_res.putChild(b"", HomeResource())
+        self.refractory_root_res.putChild(b"", HomeResource())
 
-    resource = WSGIResource(reactor, reactor.getThreadPool(), get_wsgi_application())
-    this.multifoundry_root.putChild(MANAGEMENT_PATH.encode(), resource)
-    this.multifoundry_root.putChild(INSTANCE_PATH.encode(), this.multifoundry_instances)
-    this.multifoundry_instances.putChild(b"", HomeResource())
-    this.multifoundry_root.putChild(b"", HomeResource())
+    def get_unassigned_port(self):
+        if not len(self.foundry_resources):
+            return MIN_INTERNAL_PORT
+        assigned_ports = [instance.port for instance in self.foundry_resources.values()]
+        for port in range(MIN_INTERNAL_PORT, max(assigned_ports)):
+            if port not in assigned_ports: 
+                return port
 
-    reactor.listenTCP(8080, site)
-    reactor.run()
+    def run(self, port=8080):
+        reactor.listenTCP(port, self.site)
+        reactor.run()
+
+    def stop(self):
+        reactor.stop()
+
+    def add_foundry_instance(self, foundry_instance):
+        port = self.get_unassigned_port()
+        instance_slug_bytes = foundry_instance.instance_slug.encode()
+        os.makedirs(foundry_instance.data_path, exist_ok=True)
+        foundry_instance.inject_config(port=port, clear_admin_pass=True)
+        foundry_instance.clear_unmatched_license()
+        foundry_instance.assign_license_if_able()
+        foundry_res = web_interaction.foundry_resource.FoundryResource(
+            foundry_instance, port=port, log=False
+        )
+        self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
+        self.foundry_resources[foundry_instance.instance_name] = foundry_res
+        foundry_instance.wait_for_ready()
+        foundry_instance.activate_license()
+        print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}")
+
+    def remove_foundry_instance(self, foundry_instance):
+        instance_slug_bytes = foundry_instance.instance_slug.encode()
+        if self.refractory_instances_res.getStaticEntity(instance_slug_bytes):
+            self.refractory_instances_res.delEntity(instance_slug_bytes)
+        if foundry_instance.instance_name in self.foundry_resources:
+            res = self.foundry_resources.pop(foundry_instance.instance_name)
+            res.end_process()
+            print(f"stopped {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
+
+    def get_foundry_resource(self, foundry_instance):
+        return self.foundry_resources.get(foundry_instance.instance_name, None)
+
+    def get_active_instance_names(self):
+        return self.foundry_resources.keys()
+
+    @classmethod
+    def get_server(cls):
+        if not hasattr(_MODULE, "_server"):
+            server = cls()
+            _MODULE._server = server
+            return server
+        else:
+            return _MODULE._server

@@ -19,7 +19,7 @@ import requests
 
 from twisted.internet import reactor
 from web_interaction import foundry_interaction
-from web_server import add_foundry_instance
+from web_server import RefractoryServer
 from web_interaction import vtt_interaction
 
 FOUNDRY_SESSION_COOKIE = "foundry_session"
@@ -155,7 +155,7 @@ class FoundryLicenseAdmin(admin.ModelAdmin):
 @admin.action(description=_("Launch Instances"))
 def launch_instances(modeladmin, request, queryset):
     for instance in queryset:
-        add_foundry_instance(instance)
+        RefractoryServer.get_server().add_foundry_instance(instance)
 
 @admin.action(description=_("Log Instance Info"))
 def log_info(modeladmin, request, queryset):

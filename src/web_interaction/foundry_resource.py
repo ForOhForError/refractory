@@ -124,6 +124,16 @@ DENY_ACTIONS = {
     "auth": ["adminAuth", "auth"],
 }
 
+def get_request_param(request, param_name):
+    body = request.content.read().decode()
+    request.content.seek(0)
+    try:
+        json_body = json.loads(body)
+        return json_body.get(param_name)
+    except json.decoder.JSONDecodeError:
+        qs_body = urllib.parse.parse_qs(body)
+        return qs_body.get(param_name,[None])[0]
+
 class FoundryResource(SocketIOReverseProxy):
     def __init__(
         self, foundry_instance, host="localhost", port=30000,
@@ -175,16 +185,15 @@ class FoundryResource(SocketIOReverseProxy):
                 amended_path = request.path.decode().split("/")[3]
                 if amended_path in DENY_ACTIONS:
                     actions_to_deny = DENY_ACTIONS[amended_path]
-                    body = request.content.read().decode()
-                    request.content.seek(0)
-                    try:
-                        json_body = json.loads(body)
-                        action = json_body.get("action")
-                    except json.decoder.JSONDecodeError:
-                        qs_body = urllib.parse.parse_qs(body)
-                        action = qs_body.get("action")[0]
+                    action = get_request_param(request, "action")
                     if action in actions_to_deny:
                         return True
+                elif amended_path == "license":
+                    action = get_request_param(request, "agree")
+                    print(f"license {action}")
+                    if action == "on":
+                        self.foundry_instance.eula_accepted = True
+                        self.foundry_instance.save()
             except Exception:
                 pass
         return False
