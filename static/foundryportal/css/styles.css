@@ -15,7 +15,7 @@ body {
     padding: 1rem 2rem 0rem 2rem;
     font-family: "Signika", "Palatino Linotype", sans-serif;
     color: #e8eff7;
-    background-image: url('/manage/static/multifoundry/img/BrickBG.webp');
+    background-image: url('/manage/static/refractory/img/BrickBG.webp');
     background-size: repeat;
     background-attachment: fixed;
 }
@@ -56,7 +56,7 @@ button:hover {
     text-align: center;
 }
 .header {
-    background: url('/manage/static/multifoundry/img/Refractory512.png') 50% 50% no-repeat;
+    background: url('/manage/static/refractory/img/Refractory512.png') 50% 50% no-repeat;
     background-size: contain;
     display: table;
 }
