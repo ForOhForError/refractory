@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Meta Information -->
+    <meta charset="UTF-8">
+    <title>Refractory</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{% static '/refractory/img/Refractory512.png' %}" type="image/png">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Signika:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{% static '/foundryportal/css/styles.css' %}">
+    
+    <!-- Main JavaScript with shared_data_mode -->
+    <!--<script id="main-script" data-shared-data-mode="true" src="{% static '/foundryportal/js/main.js' %}"></script>-->
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Refractory</h1>
+        </header>
+        
+        <!-- Navigation Menu -->
+        <nav id="menu">
+            <button type="button" onclick="location.href='https://foundryvtt.com';">
+                <img class="fa-fake" src="{% static '/foundryportal/images/foundry-fa-fake.png' %}" alt="Foundry VTT">
+            </button>
+            <!--
+            <button type="button" onclick="location.href='https://github.com/daxiongmao87/foundry-portal';">
+                <img class="fa-fake" src="{% static '/foundryportal/images/github-fa-fake.png' %}" alt="GitHub Repository">
+            </button>
+            -->
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Based on Foundry Portal Templates Created by <a href="https://www.github.com/Daxiongmao87">Daxiongmao87</a></p>
+            <p>Refractory is not affiliated with Foundry Gaming LLC</p>
+        </footer>
+    </div>
+</body>
+</html>

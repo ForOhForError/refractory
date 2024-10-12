@@ -24,7 +24,7 @@ def main():
     #log.startLogging(sys.stdout)
     #start_log()
 
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'multifoundry.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'refractory.settings')
     logging.basicConfig(level=logging.INFO)
     RefractoryServer.get_server().run()
 

@@ -9,8 +9,8 @@ __pycache__
 *.sqlite3
 db/*
 static/*
-!static/multifoundry
-multifoundry_data/*
+!static/refractory
+refractory_data/*
 foundry_releases/*
 foundry_releases_zip/*
 instance_data/*

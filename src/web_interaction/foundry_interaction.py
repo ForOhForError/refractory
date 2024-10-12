@@ -154,7 +154,7 @@ def download_and_write_release(session, version_string=None, output_path="foundr
         filename = f"{version_string}.zip"
         zip_file = os.path.join(download_dir, filename)
         output_dir = os.path.join(output_path,version_string)
-        test_for_file = os.path.join(output_path,version_string,"multifoundry")
+        test_for_file = os.path.join(output_path,version_string,"refractory")
         if not os.path.exists(zip_file):
             #raise Exception("doesn't exist")
             success = download_linux_zip(session, version_string)
@@ -166,7 +166,7 @@ def download_and_write_release(session, version_string=None, output_path="foundr
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
                 zip_ref.extractall(output_dir)
             with open(test_for_file, "w") as testfile:
-                testfile.write("multifoundry")
+                testfile.write("refractory")
         return True
     except Exception as ex:
         raise ex

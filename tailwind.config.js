@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './src/multifoundry_home/templates/**/*.html',
+    './src/refractory_home/templates/**/*.html',
   ],
   darkMode: 'class',
   theme: {

@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "gencss": "npx tailwindcss -i ./static/multifoundry/css/input.css -o ./static/multifoundry/css/styles.css"
+    "gencss": "npx tailwindcss -i ./static/refractory/css/input.css -o ./static/refractory/css/styles.css"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.18",

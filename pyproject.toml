@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "multifoundry"
+name = "refractory"
 version = "0.1.0"
 description = "Foundry VTT Instance Manager"
 authors = ["ForOhForError"]
