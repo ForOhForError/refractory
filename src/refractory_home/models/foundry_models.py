@@ -17,6 +17,7 @@ from websockets.sync.client import connect
 from bs4 import BeautifulSoup
 import bs4.element
 
+from web_interaction import foundry_interaction
 from web_interaction.foundry_resource import INSTANCE_PATH
 from web_server import RefractoryServer
 
@@ -213,13 +214,14 @@ class FoundryInstance(models.Model):
     def worlds(self):
         worlds_path = os.path.join(self.data_path, "Data", "worlds")
         all_worlds = []
-        for file_handle in os.listdir(worlds_path):
-            world_path = os.path.join(worlds_path, file_handle)
-            if os.path.isdir(world_path):
-                world_json_path = os.path.join(world_path, "world.json")
-                if os.path.exists(world_json_path) and os.path.isfile(world_json_path):
-                    with open(world_json_path) as world_json:
-                        all_worlds.append(json.load(world_json))
+        if os.path.exists(worlds_path) and os.path.isdir(worlds_path):
+            for file_handle in os.listdir(worlds_path):
+                world_path = os.path.join(worlds_path, file_handle)
+                if os.path.isdir(world_path):
+                    world_json_path = os.path.join(world_path, "world.json")
+                    if os.path.exists(world_json_path) and os.path.isfile(world_json_path):
+                        with open(world_json_path) as world_json:
+                            all_worlds.append(json.load(world_json))
         return all_worlds
     
     def activate(self):
@@ -446,6 +448,17 @@ class FoundryLicense(models.Model):
                 except FoundryInstance.DoesNotExist:
                     pass
         return None, None
+
+    @classmethod
+    def load_from_foundry_account(cls, foundry_session, foundry_username):
+        with requests.Session() as rsession:
+            rsession.cookies.update({"sessionid":foundry_session})
+            licenses = foundry_interaction.get_licenses(rsession, foundry_username)
+            for license_obj in licenses:
+                license_key = license_obj.get("license_key")
+                license_name = license_obj.get("license_name", "imported license")
+                if not FoundryLicense.objects.filter(license_key=license_key).exists():
+                    FoundryLicense(license_key=license_key, license_name=license_name).save()
 
 class ManagedFoundryUser(models.Model):
     user_name = models.CharField(max_length=255, default="")

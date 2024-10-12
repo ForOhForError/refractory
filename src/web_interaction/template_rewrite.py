@@ -60,7 +60,7 @@ def make_overwrite_rule(django_template_name:str):
 
 REWRITE_RULES = {
     # Login Button
-    "templates/setup/join-game.html": make_login_rewrite_rule("div", {"class":"app"}, limit_matches=1), #v9
+    "templates/setup/join-game.html": make_login_rewrite_rule("div", {"class":"app"}, limit_matches=1), #v8-10
     "templates/setup/join-game.hbs": make_login_rewrite_rule("div", {"class":"join-form"}), #v11
     "templates/setup/parts/join-form.hbs": make_overwrite_rule("injected_login_button.html"), #v12
     # Admin Auth

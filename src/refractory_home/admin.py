@@ -24,9 +24,9 @@ from web_server import RefractoryServer
 FOUNDRY_SESSION_COOKIE = "foundry_session"
 FOUNDRY_USERNAME_COOKIE = "foundry_username"
 
-class refractoryAdminSite(admin.AdminSite):
-    site_header = _("refractory Administration")
-    site_title = _("refractory Administration")
+class RefractoryAdminSite(admin.AdminSite):
+    site_header = _("Refractory Administration")
+    site_title = _("Refractory Administration")
     def get_app_list(self, request, *args, **kwargs):
         app_list = super().get_app_list(request, *args, **kwargs)
         app_list += [
@@ -50,7 +50,7 @@ class refractoryAdminSite(admin.AdminSite):
         new_urls = [path("foundry_login/", FoundryLoginFormView.as_view(), name="Foundry Login")]
         return new_urls + urls
 
-adminsite = refractoryAdminSite()
+adminsite = RefractoryAdminSite()
 
 class FoundryLoginForm(forms.Form):
     username = forms.CharField()
@@ -125,13 +125,7 @@ class FoundryVersionAdmin(admin.ModelAdmin):
     list_display = ["version_string", "update_type", "update_category", "downloaded"]
 
 def load_licenses_threaded(foundry_session, foundry_username):
-    with requests.Session() as rsession:
-        rsession.cookies.update({"sessionid":foundry_session})
-        licenses = foundry_interaction.get_licenses(rsession, foundry_username)
-        for license_obj in licenses:
-            license_key = license_obj.get("license_key")
-            if not FoundryLicense.objects.filter(license_key=license_key).exists():
-                FoundryLicense(license_key=license_key).save()
+    FoundryLicense.load_from_foundry_account(foundry_session, foundry_username)
 
 @admin.action(description=_("Fetch Licenses"))
 def load_licences(modeladmin, request, queryset):
@@ -164,6 +158,12 @@ def log_info(modeladmin, request, queryset):
         print(instance.get_setup_info())
 class FoundryInstanceAdmin(admin.ModelAdmin):
     actions = [launch_instances, log_info]
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['foundry_version'].queryset = FoundryVersion.objects.filter(
+            download_status=FoundryVersion.DownloadStatus.DOWNLOADED
+        )
+        return form
 
 adminsite.register(FoundryInstance,FoundryInstanceAdmin)
 adminsite.register(FoundryLicense,FoundryLicenseAdmin)
