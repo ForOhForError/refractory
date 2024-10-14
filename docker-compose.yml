@@ -4,12 +4,9 @@ services:
     ports: 
       - 8080:8080
     volumes:
-      - release_zips:/app/foundry_releases_zip
-      - releases:/app/foundry_releases
+      - ./foundry_releases_zip:/app/foundry_releases_zip
+      - ./foundry_releases:/app/foundry_releases
       - ./db:/app/db
     environment:
       - DJANGO_ALLOWED_HOSTS = ${DJANGO_ALLOWED_HOSTS}
       - DJANGO_SECRET = ${DJANGO_SECRET}
-volumes:
-  releases:
-  release_zips:
