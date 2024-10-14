@@ -14,5 +14,7 @@ COPY manage.py /app/
 WORKDIR /app/
 RUN poetry install --no-root
 COPY src/ /app/src/
+COPY static/foundryportal/ static/foundryportal/
+COPY static/refractory/ static/refractory/
 COPY init_and_run.sh /app/
 ENTRYPOINT ["bash", "init_and_run.sh"]
