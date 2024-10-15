@@ -64,6 +64,8 @@ class RefractoryServer:
             self.foundry_resources[foundry_instance.instance_name] = foundry_res
             foundry_instance.post_activate()
             print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}")
+            return True
+        return False
 
     def remove_foundry_instance(self, foundry_instance):
         instance_slug_bytes = foundry_instance.instance_slug.encode()

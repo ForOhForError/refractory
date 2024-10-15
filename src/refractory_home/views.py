@@ -50,7 +50,7 @@ def login_to_instance(request, instance_slug):
 def login_to_instance_as_user(request, instance_slug, user_ix):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        world_id = instance.get_join_info().get("world", {}).get("id")
+        world_id = instance.active_world_id
         managed_users = ManagedFoundryUser.objects.filter(owner=request.user, instance=instance, world_id=world_id)
         if len(managed_users) > user_ix:
             managed_user = managed_users[user_ix]
@@ -84,6 +84,47 @@ def login_to_instance_as_admin(request, instance_slug):
     except FoundryInstance.DoesNotExist:
         raise PermissionDenied
     raise PermissionDenied
+
+@login_required
+@staff_member_required
+def login_to_instance_as_managed_gm(request, instance_slug):
+    try:
+        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+        if instance.instance_state == FoundryState.JOIN:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            managed_users = ManagedFoundryUser.objects.filter(managed_gm=True, instance=instance, world_id=instance.active_world_id)
+            if len(managed_users):
+                managed_user = managed_users.first()
+                redirect_url, cookies = instance.vtt_login(managed_user)
+                if redirect_url:
+                    redirect_res = redirect(redirect_url)
+                    for key, value in cookies.items():
+                        if value:
+                            redirect_res.set_cookie(key=key, value=value, samesite='Strict', secure=False)
+                    return redirect_res
+    except FoundryInstance.DoesNotExist:
+        raise PermissionDenied
+    raise PermissionDenied
+
+
+@login_required
+def activate_world(request, instance_slug, world_id):
+    if request.method == "POST":
+        try:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            if not instance.is_active:
+                activated = instance.activate()
+                if not activated:
+                    messages.info(request, f"Couldn't launch instance {instance.display_name} to activate world.")
+                    return redirect("/manage/panel")
+            world_launched = instance.activate_world(world_id, force=False)
+            if world_launched:
+                messages.info(request, f"World activated.")
+            else:
+                messages.info(request, "World could not be activated.")
+        except FoundryInstance.DoesNotExist:
+            messages.info(request, f"Instance ID Invalid")
+    return redirect("/manage/panel")
 
 @login_required
 def activate_instance(request, instance_slug):

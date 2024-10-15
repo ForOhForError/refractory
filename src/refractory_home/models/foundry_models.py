@@ -157,6 +157,52 @@ class FoundryInstance(models.Model):
         with open(config_file_path, "w") as config_file:
             config_file.write(json.dumps(config_obj))
     
+    def deactivate_world(self):
+        if self.instance_state == FoundryState.JOIN:
+            join_url = f"{self.server_facing_base_url}/join"
+            response = requests.post(
+                join_url,
+                data={
+                    "adminPassword":self.admin_pass,
+                    "action":"shutdown"
+                }
+            )
+            if response.ok:
+                return True
+            else:
+                return False
+        else:
+            return True
+
+    def activate_world(self, world_id, force=False):
+        # preamble to deactivate an activated world
+        if self.instance_state == FoundryState.JOIN:
+            if self.active_world_id != world_id:
+                if force or not self.has_active_players():
+                    self.deactivate_world()
+                    tries = 0
+                    while tries < 10 and self.instance_state != FoundryState.SETUP:
+                        time.sleep(0.2)
+                        tries += 1
+                else:
+                    return False
+        # actually launch the new world
+        if self.instance_state == FoundryState.SETUP:
+            with requests.Session() as session:
+                self.admin_session_login(session)
+                activate_url = f"{self.server_facing_base_url}/setup"
+                payload = {
+                    "world":world_id,
+                    "action":"launchWorld"
+                }
+                resp = session.post(
+                    activate_url,
+                    data=payload
+                )
+                if resp.ok:
+                    return True
+        return False
+
     def clear_unmatched_license(self):
         config_path = os.path.join(self.data_path, "Config")
         license_file_path = os.path.join(config_path, "license.json")
@@ -225,7 +271,7 @@ class FoundryInstance(models.Model):
         return all_worlds
     
     def activate(self):
-        RefractoryServer.get_server().add_foundry_instance(self)
+        return RefractoryServer.get_server().add_foundry_instance(self)
     
     def deactivate(self):
         RefractoryServer.get_server().remove_foundry_instance(self)
@@ -317,6 +363,14 @@ class FoundryInstance(models.Model):
                 return False
         return False
 
+    def has_active_players(self):
+        join_info = self.get_join_info()
+        return len(join_info.get("activeUsers", [])) > 0
+
+    @property
+    def active_world_id(self):
+        return self.get_join_info().get("world",{}).get("id")
+
     def get_join_info(self):
         try:
             if self.instance_state == FoundryState.JOIN:
@@ -337,7 +391,6 @@ class FoundryInstance(models.Model):
                                 world_id = join_info.get("world", {}).get("id", None)
                                 if world_id and not self.managedfoundryuser_set.filter(world_id=world_id, managed_gm=True).exists():
                                     gamemaster_candidate_user = join_info.get("users", [{}])[0]
-                                    print(gamemaster_candidate_user)
                                     if gamemaster_candidate_user.get("role") == 4:
                                         user_id, user_name = gamemaster_candidate_user.get("_id"), gamemaster_candidate_user.get("name")
                                         self.register_managed_gm(world_id, user_id, user_name)
@@ -442,8 +495,7 @@ class FoundryLicense(models.Model):
             for instance_name in active_instance_names:
                 try:
                     instance = FoundryInstance.objects.get(instance_name=instance_name)
-                    join_info = instance.get_join_info()
-                    if len(join_info.get("activeUsers", [])) == 0:
+                    if not instance.has_active_players():
                         return instance.foundry_license, instance
                 except FoundryInstance.DoesNotExist:
                     pass

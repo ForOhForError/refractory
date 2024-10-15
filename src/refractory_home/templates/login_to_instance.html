@@ -8,14 +8,14 @@
     <div>
         {% for user in users %}
             <div>
-                <input type="button" onclick="location.href='/manage/vtt_login/{{ instance.instance_slug }}/{{ forloop.counter0 }}';" value={{user.user_name}} />
+                <input type="button" onclick="location.href='/manage/{{ instance.instance_slug }}/vtt_login/{{ forloop.counter0 }}';" value={{user.user_name}} />
             </div>
         {% endfor %}
     </div>
     {% if user.is_staff %}
         {% if not users %}
             <div>
-                <input type="button" onclick="location.href='/manage/admin_login/{{ instance.instance_slug }}/';" value="login as admin" />
+                <input type="button" onclick="location.href='/manage/{{ instance.instance_slug }}/admin_login/';" value="login as admin" />
             </div>
         {% endif %}
     {% endif %}

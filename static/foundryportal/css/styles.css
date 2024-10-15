@@ -323,3 +323,23 @@ a:hover
     width: 100%;
     height: auto;
 }
+.refractory-messages {
+    position: fixed;
+    background: #333377;
+    border: 1px solid #444488;
+    width: 100%;
+    top: 2rem
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    list-style: none;
+    pointer-events: none;
+}
+
+.refractory-message {
+
+}

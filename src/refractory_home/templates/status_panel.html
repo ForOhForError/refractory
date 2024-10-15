@@ -2,16 +2,17 @@
 {% load static %}
 
 
+{% block notifs %}
+    {% if messages %}
+    <ul class="refractory-messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="refractory-message {{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
-
-{% if messages %}
-<ul class="messages">
-    {% for message in messages %}
-    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-
 <!-- Active Worlds Section -->
 <section class="panel" id="active-worlds">
     <h2>Active Worlds</h2>
@@ -21,6 +22,10 @@
                 <div class="world-card">
                     <h3>{{world.title}}</h3>
                     <p>Hosted on {{instance.display_name}}</p>
+                    <form action="/manage/{{instance.instance_slug}}/activate/{{world.id}}/" method="post">
+                        {% csrf_token %}
+                        <input type="submit" name="Activate" value="Activate"/>
+                    </form>
                 </div>
             {% endfor %}
         {% endfor %}
@@ -48,7 +53,7 @@
                         {{ instance.instance_state }}
                     </div>
                 {% else %}
-                    <form action="/manage/activate/{{instance.instance_slug}}/" method="post">
+                    <form action="/manage/{{instance.instance_slug}}/activate/" method="post">
                         {% csrf_token %}
                         <div class="instance-info-container" name="{{ instance.instance_name }}">
                             <h3>{{ instance.display_name }}</h3>
