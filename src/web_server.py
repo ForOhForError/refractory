@@ -10,6 +10,7 @@ import sys
 import os
 import os.path
 
+from django.urls import set_script_prefix
 from twisted.web.util import redirectTo
 
 from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
@@ -29,6 +30,7 @@ class HomeResource(Resource):
 
 class RefractoryServer:
     def __init__(self):
+        set_script_prefix(f"/{MANAGEMENT_PATH}/")
         self.foundry_resources = {}
         self.refractory_root_res = Resource()
         self.refractory_instances_res = Resource()
