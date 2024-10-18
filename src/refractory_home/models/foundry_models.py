@@ -382,11 +382,11 @@ class FoundryInstance(models.Model):
         if join_bg:
             return f"{self.user_facing_base_url}/{join_bg}"
         else:
-            return self.default_background_url
+            return static_url("refractory/img/ActiveWorld.png")
     
     @property
     def default_background_url(self):
-        return static_url("refractory/img/BrickBG.webp")
+        return static_url("refractory/img/InactiveWorld.png")
 
     def get_join_info(self):
         try:
