@@ -11,6 +11,7 @@ from django.db import models
 from django.core.validators import RegexValidator, validate_unicode_slug
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.templatetags.static import static as static_url
 
 from websockets.sync.client import connect
 
@@ -376,8 +377,16 @@ class FoundryInstance(models.Model):
         return self.get_join_info().get("world",{}).get("id")
 
     @property
-    def background_url(self):
-        return self.get_join_info().get()
+    def active_background_url(self):
+        join_bg = self.get_join_info().get("world",{}).get("background")
+        if join_bg:
+            return f"{self.user_facing_base_url}/{join_bg}"
+        else:
+            return self.default_background_url
+    
+    @property
+    def default_background_url(self):
+        return static_url("refractory/img/BrickBG.webp")
 
     def get_join_info(self):
         try:

@@ -18,7 +18,7 @@ import urllib.parse
 
 from socketio.packet import Packet
 
-INSTANCE_PATH = "instances"
+from refractory_settings import INSTANCE_PATH
 
 def to_socketio_packet(payload):
     if isinstance(payload, bytes):

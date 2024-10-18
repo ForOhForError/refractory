@@ -19,7 +19,7 @@
     <div class="worlds-gallery" id="worlds-gallery">
         {% for instance in instances %}
             {% for world in instance.worlds %}
-                <div class="world-card" {% if world.active %}style=""{% endif %}>
+                <div class="world-card" {% if world.active %}style="background-image: url({{instance.active_background_url}})"{% else %}style="background-image: url({{instance.default_background_url}})"{% endif %}>
                     <h3>{{world.title}}</h3>
                     <p>Hosted on {{instance.display_name}}</p>
                     {% if not world.active %}
@@ -28,7 +28,7 @@
                             <input type="submit" name="Activate" value="Activate"/>
                         </form>
                     {% else %}
-                        {{world}}
+                        
                     {% endif %}
                 </div>
             {% endfor %}

@@ -16,8 +16,8 @@ from twisted.web.util import redirectTo
 from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
 from django.urls import reverse
 from web_interaction.foundry_resource import INSTANCE_PATH
+from refractory_settings import MANAGEMENT_PATH
 
-MANAGEMENT_PATH = "manage"
 MIN_INTERNAL_PORT = 30000
 _MODULE = sys.modules[__name__]
 

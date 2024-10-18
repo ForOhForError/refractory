@@ -1,13 +1,13 @@
 /* Fonts */
 @font-face {
     font-family: 'NodestoCapsCondensed';
-src: url('/manage/static/foundryportal/fonts/NodestoCapsCondensed.otf') format('opentype');
+src: url('../fonts/NodestoCapsCondensed.otf') format('opentype');
     font-style: normal;
     drop-shadow(0 0 4px black);
 }
 @font-face {
     font-family: 'AmiriRegular';
-    src: url('/manage/static/foundryportal/fonts/AmiriBold.ttf') format('truetype');
+    src: url('../fonts/AmiriBold.ttf') format('truetype');
 }
 /* General Styles */
 body {
@@ -15,7 +15,7 @@ body {
     padding: 1rem 2rem 0rem 2rem;
     font-family: "Signika", "Palatino Linotype", sans-serif;
     color: #e8eff7;
-    background-image: url('/manage/static/refractory/img/BrickBG.webp');
+    background-image: url('../../refractory/img/BrickBG.webp');
     background-size: repeat;
     background-attachment: fixed;
 }
@@ -56,7 +56,7 @@ button:hover {
     text-align: center;
 }
 .header {
-    background: url('/manage/static/refractory/img/Refractory512.png') 50% 50% no-repeat;
+    background: url('../../refractory/img/Refractory512.png') 50% 50% no-repeat;
     background-size: contain;
     display: table;
 }
@@ -152,6 +152,7 @@ h2 {
 }
 .world-card {
     background-color: black;
+    background-size: cover;
     border-radius: 2px;
     height: 200px;
     width: calc(33.333% - 20px); /* 3 items per row */
@@ -202,7 +203,7 @@ a:hover
     cursor: pointer;
 }
 .add-new {
-    background: linear-gradient( rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75) ), url('/manage/static/foundryportal/images/background.jpg');
+    background: linear-gradient( rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75) ), url('../../refractory/img/BrickBG.webp');
     background-size: cover;
     background-position-x: 50%;
 }
@@ -326,9 +327,12 @@ a:hover
 .refractory-messages {
     position: fixed;
     background: #333377;
+}
+
+.refractory-message {
     border: 1px solid #444488;
     width: 100%;
-    top: 2rem
+    top: 2rem;
     margin: 0;
     padding: 0;
     display: flex;
@@ -338,8 +342,4 @@ a:hover
     gap: 0.5rem;
     list-style: none;
     pointer-events: none;
-}
-
-.refractory-message {
-
 }
