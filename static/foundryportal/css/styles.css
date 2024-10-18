@@ -153,6 +153,7 @@ h2 {
 .world-card {
     background-color: black;
     background-size: cover;
+    background-position: center;
     border-radius: 2px;
     height: 200px;
     width: calc(33.333% - 20px); /* 3 items per row */
@@ -201,11 +202,6 @@ a:hover
     box-shadow: 0 0 15px #000;
     border: 1px solid #ffae00;
     cursor: pointer;
-}
-.add-new {
-    background: linear-gradient( rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75) ), url('../../refractory/img/BrickBG.webp');
-    background-size: cover;
-    background-position-x: 50%;
 }
 /* Foundry Instance Status Section */
 #instance-status {
@@ -327,6 +323,14 @@ a:hover
 .refractory-messages {
     position: fixed;
     background: #333377;
+    pointer-events: none;
+    animation: fadeout 10s linear forwards;
+}
+
+@keyframes fadeout {
+    0% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 .refractory-message {
@@ -341,5 +345,4 @@ a:hover
     align-items: center;
     gap: 0.5rem;
     list-style: none;
-    pointer-events: none;
 }
