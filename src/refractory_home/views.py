@@ -116,7 +116,7 @@ def activate_world(request, instance_slug, world_id):
                 activated = instance.activate()
                 if not activated:
                     messages.info(request, f"Couldn't launch instance {instance.display_name} to activate world.")
-                    return redirect("/manage/panel")
+                    return redirect(reverse("panel"))
             world_launched = instance.activate_world(world_id, force=False)
             if world_launched:
                 messages.info(request, f"World activated.")
@@ -124,7 +124,7 @@ def activate_world(request, instance_slug, world_id):
                 messages.info(request, "World could not be activated.")
         except FoundryInstance.DoesNotExist:
             messages.info(request, f"Instance ID Invalid")
-    return redirect("/manage/panel")
+    return redirect(reverse("panel"))
 
 @login_required
 def activate_instance(request, instance_slug):
@@ -135,4 +135,4 @@ def activate_instance(request, instance_slug):
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
     messages.info(request, f"Activated instance {instance.display_name}")
-    return redirect("/manage/panel")
+    return redirect(reverse("panel"))

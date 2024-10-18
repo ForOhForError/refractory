@@ -19,13 +19,17 @@
     <div class="worlds-gallery" id="worlds-gallery">
         {% for instance in instances %}
             {% for world in instance.worlds %}
-                <div class="world-card">
+                <div class="world-card" {% if world.active %}style=""{% endif %}>
                     <h3>{{world.title}}</h3>
                     <p>Hosted on {{instance.display_name}}</p>
-                    <form action="/manage/{{instance.instance_slug}}/activate/{{world.id}}/" method="post">
-                        {% csrf_token %}
-                        <input type="submit" name="Activate" value="Activate"/>
-                    </form>
+                    {% if not world.active %}
+                        <form action="{% url 'activate_world' instance.instance_slug world.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="submit" name="Activate" value="Activate"/>
+                        </form>
+                    {% else %}
+                        {{world}}
+                    {% endif %}
                 </div>
             {% endfor %}
         {% endfor %}
@@ -46,14 +50,14 @@
                 {% if instance.is_active %} 
                     <div 
                         class="instance-info-container" name="{{ instance.instance_name }}"
-                        onclick="window.open('/instances/{{instance.instance_slug}}','_blank')"
+                        onclick="window.open('{{instance.user_facing_base_url}}','_blank')"
                     >
                         <h3>{{ instance.display_name }}</h3>
                         <p>{{ instance.is_active }}</p>
                         {{ instance.instance_state }}
                     </div>
                 {% else %}
-                    <form action="/manage/{{instance.instance_slug}}/activate/" method="post">
+                    <form action="{% url 'activate_instance' instance.instance_slug %}" method="post">
                         {% csrf_token %}
                         <div class="instance-info-container" name="{{ instance.instance_name }}">
                             <h3>{{ instance.display_name }}</h3>

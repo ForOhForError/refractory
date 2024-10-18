@@ -258,16 +258,20 @@ class FoundryInstance(models.Model):
 
     @property
     def worlds(self):
+        active_world_id = self.active_world_id
         worlds_path = os.path.join(self.data_path, "Data", "worlds")
         all_worlds = []
         if os.path.exists(worlds_path) and os.path.isdir(worlds_path):
             for file_handle in os.listdir(worlds_path):
                 world_path = os.path.join(worlds_path, file_handle)
+                is_active_world = str(file_handle) == active_world_id
                 if os.path.isdir(world_path):
                     world_json_path = os.path.join(world_path, "world.json")
                     if os.path.exists(world_json_path) and os.path.isfile(world_json_path):
                         with open(world_json_path) as world_json:
-                            all_worlds.append(json.load(world_json))
+                            world_dict = json.load(world_json)
+                            world_dict["active"] = is_active_world
+                            all_worlds.append(world_dict)
         return all_worlds
     
     def activate(self):
@@ -370,6 +374,10 @@ class FoundryInstance(models.Model):
     @property
     def active_world_id(self):
         return self.get_join_info().get("world",{}).get("id")
+
+    @property
+    def background_url(self):
+        return self.get_join_info().get()
 
     def get_join_info(self):
         try:

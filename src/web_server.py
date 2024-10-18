@@ -13,6 +13,7 @@ import os.path
 from twisted.web.util import redirectTo
 
 from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
+from django.urls import reverse
 from web_interaction.foundry_resource import INSTANCE_PATH
 
 MANAGEMENT_PATH = "manage"
@@ -22,7 +23,9 @@ _MODULE = sys.modules[__name__]
 class HomeResource(Resource):
     isLeaf = True
     def render(self, request):
-        return redirectTo(b"/manage/panel", request)
+        redirect_addr = reverse('panel')
+        print(redirect_addr)
+        return redirectTo(redirect_addr.encode(), request)
 
 class RefractoryServer:
     def __init__(self):
