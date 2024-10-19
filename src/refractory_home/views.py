@@ -70,6 +70,8 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
 def login_to_instance_as_admin(request, instance_slug):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+        if instance.instance_state == FoundryState.JOIN:
+            instance.deactivate_world()
         if instance.instance_state == FoundryState.SETUP:
             redirect_url, cookies = instance.admin_login()
             if redirect_url:
@@ -79,11 +81,11 @@ def login_to_instance_as_admin(request, instance_slug):
                         redirect_res.set_cookie(key=key, value=value, samesite='Strict', secure=False)
                 return redirect_res
         else:
-            messages.error(request,'Cannot enter as admin in the join state')
-            return redirect(reverse("panel"))
+            messages.error(request,'Bad Instance State')
     except FoundryInstance.DoesNotExist:
-        raise PermissionDenied
-    raise PermissionDenied
+        messages.error(request,'Bad request')
+        return redirect(reverse("panel"))
+    return redirect(reverse("panel"))
 
 @login_required
 @staff_member_required

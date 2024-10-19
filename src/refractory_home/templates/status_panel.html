@@ -28,7 +28,9 @@
                             <input type="submit" name="Activate" value="Activate"/>
                         </form>
                     {% else %}
-                        
+                        {% for _ in instance.active_player_range %}
+                            <p>😊</p>
+                        {% endfor%}
                     {% endif %}
                 </div>
             {% endfor %}

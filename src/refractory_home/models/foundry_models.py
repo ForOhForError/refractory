@@ -272,6 +272,8 @@ class FoundryInstance(models.Model):
                         with open(world_json_path) as world_json:
                             world_dict = json.load(world_json)
                             world_dict["active"] = is_active_world
+                            if not world_dict.get("id"):
+                                world_dict["id"] = str(file_handle)
                             all_worlds.append(world_dict)
         return all_worlds
     
@@ -368,9 +370,17 @@ class FoundryInstance(models.Model):
                 return False
         return False
 
-    def has_active_players(self):
+    @property
+    def active_player_range(self):
+        return range(self.active_player_count)
+
+    @property
+    def active_player_count(self):
         join_info = self.get_join_info()
-        return len(join_info.get("activeUsers", [])) > 0
+        return len(join_info.get("activeUsers", []))
+
+    def has_active_players(self):
+        return self.active_player_count > 0
 
     @property
     def active_world_id(self):
@@ -378,7 +388,11 @@ class FoundryInstance(models.Model):
 
     @property
     def active_background_url(self):
-        join_bg = self.get_join_info().get("world",{}).get("background")
+        join_info = self.get_join_info()
+        join_bg = join_info.get("world",{}).get("background")
+        if not join_bg:
+            join_bg_legacy = join_info.get("world",{}).get("data",{}).get("background")
+            join_bg = join_bg_legacy
         if join_bg:
             return f"{self.user_facing_base_url}/{join_bg}"
         else:
@@ -397,6 +411,8 @@ class FoundryInstance(models.Model):
                 if session_id:
                     ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
                     with connect(ws_url) as websocket:
+                        if int(self.foundry_version.version_string.split(".")[0]) <= 10: 
+                            time.sleep(0.2) # go figure
                         websocket.send('40')
                         websocket.send('420["getJoinData"]')
                         while True:
@@ -413,7 +429,7 @@ class FoundryInstance(models.Model):
                                         self.register_managed_gm(world_id, user_id, user_name)
                                 return join_info
         except Exception as ex:
-            pass
+            print(ex)
         return {}
 
     def get_setup_info(self):
