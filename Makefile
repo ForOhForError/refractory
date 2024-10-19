@@ -1,10 +1,7 @@
 all: build
 
-build: tailwind
+build: 
 	docker compose build
 
 up: build
 	docker compose up -d
-
-tailwind:
-	npm run gencss

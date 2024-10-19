@@ -24,6 +24,6 @@ from refractory_home.admin import adminsite
 
 urlpatterns = [
     path('', include('refractory_home.urls')),
-    path('admin/', adminsite.urls),
+    path('admin/', adminsite.urls, name="admin"),
     re_path(r"^static/(?P<path>.*)$", static_serve, {"document_root": settings.STATIC_ROOT}),
 ]

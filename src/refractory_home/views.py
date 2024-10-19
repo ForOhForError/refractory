@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.views import LoginView
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView
 from django.urls import reverse_lazy
 from django.contrib import messages
 
@@ -27,7 +27,6 @@ class RefractoryLoginView(LoginView):
 
 class PanelView(LoginRequiredMixin, TemplateView):
     template_name = "status_panel.html"
-    login_url = "/manage/login/"
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

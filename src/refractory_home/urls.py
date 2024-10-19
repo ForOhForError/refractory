@@ -7,7 +7,7 @@ from .views import (
 )
 
 urlpatterns = [
-    path('login/', RefractoryLoginView.as_view()),
+    path('login/', RefractoryLoginView.as_view(), name="base_login"),
     path('admin/login/', RefractoryLoginView.as_view(), name='override_admin_login'),
     path('panel/', PanelView.as_view(), name='panel'),
     path('<slug:instance_slug>/vtt_login/', login_to_instance, name='vtt_choose_user'),

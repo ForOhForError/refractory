@@ -1,21 +1,23 @@
 {% extends "_foundry_portal_base.html" %}
 {% load static %}
 
+{% block title %}Select a User{% endblock %}
+
 {% block content %}
 <!-- Active Worlds Section -->
-<section class="panel" id="active-worlds">
+<section class="panel main-panel" id="active-worlds">
     <h2>Select A User</h2>
     <div>
         {% for user in users %}
             <div>
-                <input type="button" onclick="location.href='{% url 'instance_admin_login' instance.instance_slug forloop.counter0 %}';" value={{user.user_name}} />
+                <button type="button" onclick="location.href='{% url 'instance_admin_login' instance.instance_slug forloop.counter0 %}';"><p>{{user.user_name}}</p></button>
             </div>
         {% endfor %}
     </div>
     {% if user.is_staff %}
         {% if not users %}
             <div>
-                <input type="button" onclick="location.href='{% url 'instance_admin_login' instance.instance_slug  %}';" value="login as admin" />
+                <button type="button" onclick="location.href='{% url 'instance_admin_login' instance.instance_slug  %}';"><p>Return to Setup</p></button>
             </div>
         {% endif %}
     {% endif %}

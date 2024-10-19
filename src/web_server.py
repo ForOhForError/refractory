@@ -25,7 +25,6 @@ class HomeResource(Resource):
     isLeaf = True
     def render(self, request):
         redirect_addr = reverse('panel')
-        print(redirect_addr)
         return redirectTo(redirect_addr.encode(), request)
 
 class RefractoryServer:

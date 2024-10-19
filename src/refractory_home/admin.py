@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 
 from django import forms
 from django.template.response import TemplateResponse
-from django.urls import path
+from django.urls import path, reverse, reverse_lazy
 
 from django.views.generic.edit import FormView
 
@@ -37,7 +37,7 @@ class RefractoryAdminSite(admin.AdminSite):
                     {
                         "name": _("Foundry Login"),
                         "object_name": "foundry_site",
-                        "admin_url": "/manage/admin/foundry_login",
+                        "admin_url": f"{reverse('admin:Foundry Login')}",
                         "view_only": True,
                     }
                 ],
@@ -59,7 +59,7 @@ class FoundryLoginForm(forms.Form):
 class FoundryLoginFormView(FormView, UserPassesTestMixin):
     template_name = "foundry_login.html"
     form_class = FoundryLoginForm
-    success_url = "/manage/admin"
+    success_url = reverse_lazy("admin:index")
     redirect_authenticated_user = True
     
     def test_func(self):

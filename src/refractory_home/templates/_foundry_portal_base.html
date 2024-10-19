@@ -4,7 +4,7 @@
 <head>
     <!-- Meta Information -->
     <meta charset="UTF-8">
-    <title>Refractory</title>
+    <title>{% block title %}{% endblock %}</title>
     
     <!-- Favicon -->
     <link rel="icon" href="{% static '/refractory/img/Refractory512.png' %}" type="image/png">
@@ -27,7 +27,7 @@
         
         <!-- Navigation Menu -->
         <nav id="menu">
-            <button type="button" onclick="location.href='https://foundryvtt.com';">
+            <button class="link-icon" type="button" onclick="location.href='https://foundryvtt.com';">
                 <img class="fa-fake" src="{% static '/foundryportal/images/foundry-fa-fake.png' %}" alt="Foundry VTT">
             </button>
             <!--

@@ -1,6 +1,7 @@
 {% extends "_foundry_portal_base.html" %}
 {% load static %}
 
+{% block title %}Refractory{% endblock %}
 
 {% block notifs %}
     {% if messages %}
@@ -14,7 +15,7 @@
 
 {% block content %}
 <!-- Active Worlds Section -->
-<section class="panel" id="active-worlds">
+<section class="panel main-panel" id="active-worlds">
     <h2>Active Worlds</h2>
     <div class="worlds-gallery" id="worlds-gallery">
         {% for instance in instances %}
@@ -25,7 +26,7 @@
                     {% if not world.active %}
                         <form action="{% url 'activate_world' instance.instance_slug world.id %}" method="post">
                             {% csrf_token %}
-                            <input type="submit" name="Activate" value="Activate"/>
+                            <button type="submit" name="Activate"><p>Activate</p></button>
                         </form>
                     {% else %}
                         {% for _ in instance.active_player_range %}
@@ -39,7 +40,7 @@
 </section>
 
 <!-- Instance Status Section -->
-<section class="panel" id="instance-status">
+<section class="panel sidebar" id="instance-status">
     <h2>Instances</h2>
     <div class="status-key">
         <div class="status-container"><span class="status-indicator active"></span>Active</div>
@@ -64,7 +65,7 @@
                         <div class="instance-info-container" name="{{ instance.instance_name }}">
                             <h3>{{ instance.display_name }}</h3>
                             <p>{{ instance.is_active }}</p>
-                            <input type="submit" name="Activate" value="Activate"/>
+                            <button type="submit" name="Activate"><p>Activate</p></button>
                         </div>
                     </form>
                 {% endif %}
