@@ -316,7 +316,7 @@ class FoundryInstance(models.Model):
             return self.admin_session_login(session)
 
     def admin_session_login(self, session):
-        login_url = f"{self.server_facing_base_url}/auth"
+        login_url = f"{self.server_facing_base_url}/auth" if self.version_tuple[0] > 8 else f"{self.server_facing_base_url}/setup"
         session.get(login_url)
         admin_pass = self.admin_pass
         form_body = {
@@ -324,11 +324,11 @@ class FoundryInstance(models.Model):
             "adminKey": admin_pass,
             "action": "adminAuth"
         }
-        login_url = f"{self.server_facing_base_url}/auth"
         login_res = session.post(
             login_url,
             data = form_body
         )
+        print(dict(session.cookies))
         return self.user_facing_base_url, dict(session.cookies)
 
     def wait_for_ready(self):
@@ -401,6 +401,10 @@ class FoundryInstance(models.Model):
     @property
     def default_background_url(self):
         return static_url("refractory/img/InactiveWorld.png")
+    
+    @property
+    def version_tuple(self):
+        return tuple([int(part) for part in self.foundry_version.version_string.split(".")])
 
     def get_join_info(self):
         try:
@@ -411,7 +415,7 @@ class FoundryInstance(models.Model):
                 if session_id:
                     ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
                     with connect(ws_url) as websocket:
-                        if int(self.foundry_version.version_string.split(".")[0]) <= 10: 
+                        if self.version_tuple[0] <= 10:
                             time.sleep(0.2) # go figure
                         websocket.send('40')
                         websocket.send('420["getJoinData"]')
