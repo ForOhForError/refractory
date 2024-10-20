@@ -18,12 +18,8 @@ src: url('../fonts/NodestoCapsCondensed.otf') format('opentype');
     margin: 0;
     background: none;
     border: none;
-}
-
-.fillspace:hover {
-    background: none;
-    border-color: none;
-    transition: none;
+    font-family: "Signika", "Palatino Linotype", sans-serif;
+    color: #e8eff7;
 }
 
 /* General Styles */
@@ -53,7 +49,7 @@ body {
     display: inline;
 }
 
-button {
+button:not(.fillspace) {
     background: rgba(0,0,0,0.5);
     border: 1px solid #dab55b;
     color: #e8eff7;
@@ -63,7 +59,7 @@ button {
     border-radius: 4px;
 }
 
-button:hover {
+button:not(.fillspace):hover {
     background: #dab55b;
     border-color: #f5cc66;
     transition: background-color 0.5s, border-color 0.5s;

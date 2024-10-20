@@ -64,26 +64,32 @@
     </div>
     <div class="instance-list" id="instance-list">
         {% for instance in instances %}
-            <form 
-                {% if instance.is_active %} 
-                    action="{{instance.user_facing_base_url}}" 
-                    target="_blank"
-                    method="get"
-                {% else %}
-                    action="{% url 'activate_instance' instance.instance_slug %}"
-                    method="post"
-                {% endif %}
-            >
-                <div {% if instance.is_active %} type="submit" {% endif %} class="instance-card" name="{{ instance.instance_name }}">
-                    {% csrf_token %}
-                    <h3>{{ instance.display_name }}</h3>
-                    <p>{{ instance.is_active }}</p>
-                    {{ instance.instance_state }}
-                    {% if not instance.is_active %} 
-                        <button type="submit"><p>Activate</p></button>
+            <div class="instance-card" name="{{ instance.instance_name }}">
+                <form class="fillspace"
+                    {% if instance.is_active %} 
+                        action="{{instance.user_facing_base_url}}" 
+                        target="_blank"
+                        method="get"
+                    {% else %}
+                        action="{% url 'activate_instance' instance.instance_slug %}"
+                        method="post"
                     {% endif %}
-                </div>
-            </form>
+                >
+                    {% if instance.is_active %}
+                        <button class="fillspace" type="submit">
+                    {% endif %}
+                        {% csrf_token %}
+                        <h3>{{ instance.display_name }}</h3>
+                        <p>{{ instance.is_active }}</p>
+                        {{ instance.instance_state }}
+                        {% if not instance.is_active %} 
+                            <button type="submit"><p>Activate</p></button>
+                        {% endif %}
+                    {% if instance.is_active %}
+                        </button>
+                    {% endif %}
+                </form>
+            </div>
         {% endfor %}
     </div>
 </section>
