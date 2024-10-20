@@ -190,7 +190,6 @@ class FoundryResource(SocketIOReverseProxy):
                         return True
                 elif amended_path == "license":
                     action = get_request_param(request, "agree")
-                    print(f"license {action}")
                     if action == "on":
                         self.foundry_instance.eula_accepted = True
                         self.foundry_instance.save()

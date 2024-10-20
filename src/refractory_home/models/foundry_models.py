@@ -22,6 +22,8 @@ from web_interaction import foundry_interaction
 from web_interaction.foundry_resource import INSTANCE_PATH
 from web_server import RefractoryServer
 
+import socketio
+
 DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
 
@@ -32,9 +34,6 @@ class FoundryState(Enum):
     SETUP = 3
     JOIN = 4
     ACTIVE_UNKNOWN = 99
-
-class SocketioMessageCode(Enum):
-    JOIN_DATA_RESPONSE = 430
 
 URL_TO_STATE = {
     "license": FoundryState.LICENSE_EULA,
@@ -86,6 +85,10 @@ class FoundryInstance(models.Model):
     def user_facing_base_url(self):
         url = f"/{INSTANCE_PATH}/{self.instance_slug}"
         return url
+    
+    @property
+    def socketio_path(self):
+        return f"{INSTANCE_PATH}/{self.instance_slug}/socket.io/"
     
     @property
     def server_facing_base_url(self):
@@ -165,6 +168,7 @@ class FoundryInstance(models.Model):
                 join_url,
                 data={
                     "adminPassword":self.admin_pass,
+                    "adminKey":self.admin_pass,
                     "action":"shutdown"
                 }
             )
@@ -406,52 +410,47 @@ class FoundryInstance(models.Model):
         return tuple([int(part) for part in self.foundry_version.version_string.split(".")])
 
     def get_join_info(self):
-        try:
-            if self.instance_state == FoundryState.JOIN:
-                base_url = self.server_facing_base_url
-                login_url = f"{base_url}/join"
-                session_id = requests.get(login_url).cookies.get('session', None)
-                if session_id:
-                    ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
-                    with connect(ws_url) as websocket:
-                        if self.version_tuple[0] <= 10:
-                            time.sleep(0.2) # go figure
-                        websocket.send('40')
-                        websocket.send('420["getJoinData"]')
-                        while True:
-                            message = websocket.recv(timeout=1)
-                            code_match = re.search("^\d*", message)
-                            code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
-                            if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
-                                join_info = json.loads(data)[0]
-                                world_id = join_info.get("world", {}).get("id", None)
-                                if world_id and not self.managedfoundryuser_set.filter(world_id=world_id, managed_gm=True).exists():
-                                    gamemaster_candidate_user = join_info.get("users", [{}])[0]
-                                    if gamemaster_candidate_user.get("role") == 4:
-                                        user_id, user_name = gamemaster_candidate_user.get("_id"), gamemaster_candidate_user.get("name")
-                                        self.register_managed_gm(world_id, user_id, user_name)
-                                return join_info
-        except Exception as ex:
-            print(ex)
+        if self.instance_state == FoundryState.JOIN:
+            try:
+                if self.version_tuple[0] > 8:
+                    join_info = self.get_ws_response("getJoinData")
+                else:
+                    join_info = self.get_ws_response("getSetupData")
+                world_id = join_info.get("world", {}).get("id", None)
+                if world_id and not self.managedfoundryuser_set.filter(world_id=world_id, managed_gm=True).exists():
+                    gamemaster_candidate_user = join_info.get("users", [{}])[0]
+                    if gamemaster_candidate_user.get("role") == 4:
+                        user_id, user_name = gamemaster_candidate_user.get("_id"), gamemaster_candidate_user.get("name")
+                        self.register_managed_gm(world_id, user_id, user_name)
+                return join_info
+            except Exception as ex:
+                pass
+        return {}
+
+    def get_ws_response(self, initial_event_type, initial_event_data=None):
+        base_url = self.server_facing_base_url
+        if base_url:
+            login_url = f"{base_url}/join"
+            session_id = requests.get(login_url).cookies.get('session', None)
+            if session_id:
+                connect_url = f"{base_url.replace('http','ws')}?session={session_id}"
+                with socketio.SimpleClient() as sio:
+                    sio.connect(
+                        connect_url, 
+                        socketio_path=self.socketio_path,
+                        transports=["websocket"]
+                    )
+                    if initial_event_data == None:
+                        event = sio.call(initial_event_type)
+                    else:
+                        event = sio.receive(initial_event_type, initial_event_data)
+                    return event
         return {}
 
     def get_setup_info(self):
         try:
-            if self.instance_state == FoundryState.SETUP:
-                base_url = self.server_facing_base_url
-                login_url = f"{base_url}/join"
-                session_id = requests.get(login_url).cookies.get('session', None)
-                if session_id:
-                    ws_url = f"{base_url.replace('http','ws')}/socket.io/?session={session_id}&EIO=4&transport=websocket"
-                    with connect(ws_url) as websocket:
-                        websocket.send('40')
-                        websocket.send('420["getSetupData"]')
-                        while True:
-                            message = websocket.recv(timeout=1)
-                            code_match = re.search("^\d*", message)
-                            code, data = int(message[code_match.start():code_match.end()]), message[code_match.end():]
-                            if code == SocketioMessageCode.JOIN_DATA_RESPONSE.value:
-                                return json.loads(data)[0]
+            join_info = self.get_ws_response("getSetupData")
+            world_id = join_info.get("world", {}).get("id", None)
         except Exception as ex:
             pass
         return {}

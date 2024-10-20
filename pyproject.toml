@@ -12,7 +12,7 @@ twisted = "^22.10.0"
 autobahn = {extras = ["twisted"], version = "^23.6.2"}
 websockets = "^11.0.3"
 django = "^5.0.1"
-python-socketio = "^5.11.1"
+python-socketio = {extras = ["client"], version = "^5.11.4"}
 
 [tool.poetry.group.dev.dependencies]
 beautifulsoup4 = "^4.12.2"
