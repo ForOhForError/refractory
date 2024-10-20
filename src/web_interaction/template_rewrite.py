@@ -4,8 +4,9 @@ from socketio.packet import Packet
 
 
 def rewrite_template_payload(payload, instance, response_to=None):
-    if response_to and response_to.data and isinstance(response_to.data, list) and len(response_to.data)==2:
-        verb, subject = response_to.data
+    if response_to and response_to.data and isinstance(response_to.data, list):
+        verb = response_to.data[0] if len(response_to.data) > 0 else None
+        subject = response_to.data[1] if len(response_to.data) > 1 else None
         if verb == 'template':
             if payload.data:
                 if isinstance(payload.data, list) and len(payload.data) > 0:
@@ -21,6 +22,19 @@ def rewrite_template_payload(payload, instance, response_to=None):
                                     data=[{"html": rewritten_html, "success":success}], 
                                     namespace=payload.namespace, id=payload.id
                                 )
+        elif verb == "world":
+            if payload.data:
+                if isinstance(payload.data, list) and len(payload.data) > 0:
+                    first_data = payload.data[0] 
+                    if isinstance(first_data, dict):
+                        addresses = first_data.get('addresses')
+                        addresses["local"] = instance.amend_invite_url(addresses.get("local",""))
+                        addresses["remote"] = instance.amend_invite_url(addresses.get("remote",""))
+                    return Packet(
+                        packet_type=payload.packet_type, 
+                        data=[first_data], 
+                        namespace=payload.namespace, id=payload.id
+                    )
     return payload
 
 def rewrite_element_with_template(input_body:str, django_template_name:str, *search_args, foundry_instance=None, **search_kwargs) -> str:

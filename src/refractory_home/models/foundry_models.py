@@ -24,6 +24,8 @@ from web_server import RefractoryServer
 
 import socketio
 
+from refractory_settings import SERVER_PORT
+
 DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
 
@@ -97,6 +99,13 @@ class FoundryInstance(models.Model):
             url = f"{foundry_resource.get_base_url()}/{INSTANCE_PATH}/{self.instance_slug}"
             return url
         return None
+    
+    def amend_invite_url(self, invite_url):
+        foundry_resource = RefractoryServer.get_server().get_foundry_resource(self)
+        if foundry_resource:
+            replace_path = f":{foundry_resource.port}/{INSTANCE_PATH}/{self.instance_slug}/"
+            return invite_url.replace(replace_path, f":{SERVER_PORT}/")
+        return invite_url
     
     @property
     def instance_state(self):
@@ -443,7 +452,7 @@ class FoundryInstance(models.Model):
                     if initial_event_data == None:
                         event = sio.call(initial_event_type)
                     else:
-                        event = sio.receive(initial_event_type, initial_event_data)
+                        event = sio.call(initial_event_type, initial_event_data)
                     return event
         return {}
 
