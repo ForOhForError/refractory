@@ -27,14 +27,20 @@
         
         <!-- Navigation Menu -->
         <nav id="menu">
-            <button class="link-icon" type="button" onclick="location.href='https://foundryvtt.com';">
-                <img class="fa-fake" src="{% static '/foundryportal/images/foundry-fa-fake.png' %}" alt="Foundry VTT">
+            {% if user.is_authenticated %}
+                <form class="inline-form" action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button class="nav-link-text" type="submit">
+                        <p>Log out</p>
+                    </button>
+                </form>
+            {% endif %}
+            <button class="nav-link-icon" type="button" onclick="location.href='https://foundryvtt.com';">
+                <img class="fa-fake" src="{% static '/foundryportal/images/foundry-fa-fake.png' %}" alt="Logout">
             </button>
-            <!--
-            <button type="button" onclick="location.href='https://github.com/daxiongmao87/foundry-portal';">
+            <button class="nav-link-icon" type="button" onclick="location.href='https://github.com/forohforerror/refractory';">
                 <img class="fa-fake" src="{% static '/foundryportal/images/github-fa-fake.png' %}" alt="GitHub Repository">
             </button>
-            -->
         </nav>
         {% block notifs %}{% endblock %}
         <!-- Main Content -->
