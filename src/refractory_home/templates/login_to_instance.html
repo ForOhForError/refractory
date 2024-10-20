@@ -9,17 +9,21 @@
     <h2>Select A User</h2>
     <div>
         {% for user in users %}
-            <div>
-                <button type="button" onclick="location.href='{% url 'instance_admin_login' instance.instance_slug forloop.counter0 %}';"><p>{{user.user_name}}</p></button>
-            </div>
+            <form action="{% url 'instance_admin_login' instance.instance_slug forloop.counter0 %}" method="post">
+                {% csrf_token %}
+                <button type="submit"><p>{{user.user_name}}</p></button>
+            </form>
         {% endfor %}
     </div>
     {% if user.is_staff %}
-        {% if not users %}
-            <div>
-                <button type="button" onclick="location.href='{% url 'instance_admin_login' instance.instance_slug  %}';"><p>Return to Setup</p></button>
-            </div>
-        {% endif %}
+        <form action="{% url 'instance_admin_login' instance.instance_slug %}" method="post">
+            {% csrf_token %}
+            <button type="submit"><p>Return to Setup</p></button>
+        </form>
+        <form action="{% url 'managed_admin_login' instance.instance_slug %}" method="post">
+            {% csrf_token %}
+            <button type="submit"><p>Login as Managed GM</p></button>
+        </form>
     {% endif %}
 </section>
 {% endblock %}

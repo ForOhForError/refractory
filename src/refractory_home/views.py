@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
 
 from refractory_home.models import FoundryState
+from django.views.decorators.http import require_POST
 
 # Create your views here.
 class RefractoryLoginView(LoginView):
@@ -46,6 +47,7 @@ def login_to_instance(request, instance_slug):
     raise PermissionDenied
 
 @login_required
+@require_POST
 def login_to_instance_as_user(request, instance_slug, user_ix):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
@@ -66,6 +68,7 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
 
 @login_required
 @staff_member_required
+@require_POST
 def login_to_instance_as_admin(request, instance_slug):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
@@ -88,6 +91,7 @@ def login_to_instance_as_admin(request, instance_slug):
 
 @login_required
 @staff_member_required
+@require_POST
 def login_to_instance_as_managed_gm(request, instance_slug):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
@@ -109,6 +113,7 @@ def login_to_instance_as_managed_gm(request, instance_slug):
 
 
 @login_required
+@require_POST
 def activate_world(request, instance_slug, world_id):
     if request.method == "POST":
         try:
@@ -128,6 +133,7 @@ def activate_world(request, instance_slug, world_id):
     return redirect(reverse("panel"))
 
 @login_required
+@require_POST
 def activate_instance(request, instance_slug):
     if request.method == "POST":
         try:
