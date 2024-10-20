@@ -1,9 +1,22 @@
-{% extends 'admin/index.html' %}
+{% extends '_foundry_portal_base.html' %}
+
+{% block title %}FoundryVTT.com Login{% endblock %}
 
 {% block content %}
-<form method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="submit" value="Submit">
-</form>
+<section class="panel thin-panel" id="login-panel">
+    <div class="login-panel">
+    {% if foundry_user %}
+        <form action="{% url 'admin:index' %}" method="get">
+            <p>Logged in as {{foundry_user}}</p>
+            <button type="submit">Return</button>
+        </form>
+    {% else %}
+        <form action="{% url 'foundry_site_login' %}" method="post">
+            {% csrf_token %}
+            {{ form }}
+            <button type="submit">Submit</button>
+        </form>
+    {% endif %}
+    </div>
+</section>
 {% endblock %}

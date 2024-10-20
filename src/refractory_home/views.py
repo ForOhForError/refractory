@@ -1,23 +1,45 @@
 from django.shortcuts import render
 from django.contrib.auth.views import LoginView
-from django.views.generic import TemplateView, ListView
+from django.views.generic import TemplateView, ListView, DetailView
+from django.views.generic.edit import FormView
+
 from django.urls import reverse_lazy
 from django.contrib import messages
 
 from refractory_home.models import FoundryInstance, ManagedFoundryUser
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.urls import reverse
+from django import forms
+from web_interaction.foundry_interaction import foundry_site_login, FOUNDRY_USERNAME_COOKIE
 
 from django.contrib.admin.views.decorators import staff_member_required
 
 from refractory_home.models import FoundryState
 from django.views.decorators.http import require_POST
 
-# Create your views here.
+
+class InstanceDetailView(DetailView):
+    model = FoundryInstance
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        return context
+    
+class InstanceListView(ListView):
+    model = FoundryInstance
+    paginate_by = 100  # if pagination is desired
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        return context
+
+
 class RefractoryLoginView(LoginView):
     redirect_authenticated_user = False
     template_name='refractory_login.html'
@@ -34,6 +56,35 @@ class PanelView(LoginRequiredMixin, TemplateView):
         # Add in a QuerySet of all the books
         context["instances"] = FoundryInstance.objects.all()
         return context
+
+class FoundryLoginForm(forms.Form):
+    username = forms.CharField()
+    password = forms.CharField(widget=forms.PasswordInput)
+
+class FoundryLoginFormView(FormView, UserPassesTestMixin):
+    template_name = "foundry_login.html"
+    form_class = FoundryLoginForm
+    success_url = reverse_lazy("admin:index")
+    redirect_authenticated_user = True
+    
+    def get_context_data(self, **kwargs):
+        """Use this to add extra context."""
+        context = super().get_context_data(**kwargs)
+        foundry_user = self.request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE)
+        context['foundry_user'] = foundry_user
+        return context
+    
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def form_valid(self, form):
+        # This method is called when valid form data has been POSTed.
+        # It should return an HttpResponse.
+        resp = super().form_valid(form)
+        username = form.cleaned_data["username"]
+        password = form.cleaned_data["password"]
+        foundry_site_login(username, password, resp)
+        return resp
 
 @login_required
 def login_to_instance(request, instance_slug):

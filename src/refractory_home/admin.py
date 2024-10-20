@@ -6,23 +6,15 @@ from refractory_home.models.foundry_models import (
 )
 
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth.mixins import UserPassesTestMixin
 
-from django import forms
 from django.template.response import TemplateResponse
 from django.urls import path, reverse, reverse_lazy
-
-from django.views.generic.edit import FormView
 
 from web_interaction import foundry_interaction
 import requests
 
 from twisted.internet import reactor
-from web_interaction import foundry_interaction
 from web_server import RefractoryServer
-
-FOUNDRY_SESSION_COOKIE = "foundry_session"
-FOUNDRY_USERNAME_COOKIE = "foundry_username"
 
 class RefractoryAdminSite(admin.AdminSite):
     site_header = _("Refractory Administration")
@@ -37,7 +29,7 @@ class RefractoryAdminSite(admin.AdminSite):
                     {
                         "name": _("Foundry Login"),
                         "object_name": "foundry_site",
-                        "admin_url": f"{reverse('admin:Foundry Login')}",
+                        "admin_url": f"{reverse_lazy('foundry_site_login')}",
                         "view_only": True,
                     }
                 ],
@@ -45,52 +37,7 @@ class RefractoryAdminSite(admin.AdminSite):
         ]
         return app_list
 
-    def get_urls(self):
-        urls = super().get_urls()
-        new_urls = [path("foundry_login/", FoundryLoginFormView.as_view(), name="Foundry Login")]
-        return new_urls + urls
-
 adminsite = RefractoryAdminSite()
-
-class FoundryLoginForm(forms.Form):
-    username = forms.CharField()
-    password = forms.CharField(widget=forms.PasswordInput)
-
-class FoundryLoginFormView(FormView, UserPassesTestMixin):
-    template_name = "foundry_login.html"
-    form_class = FoundryLoginForm
-    success_url = reverse_lazy("admin:index")
-    redirect_authenticated_user = True
-    
-    def test_func(self):
-        return self.request.user.is_superuser
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(adminsite.each_context(self.request))
-        return context
-
-    def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
-        # It should return an HttpResponse.
-        username = form.cleaned_data["username"]
-        password = form.cleaned_data["password"]
-        with requests.Session() as rsession:
-            tok = foundry_interaction.get_token(rsession)
-            canon_username = foundry_interaction.login(rsession, tok, username, password)
-            if canon_username:
-                cookies = rsession.cookies.get_dict()
-                session_id = cookies.get('sessionid')
-                resp = super().form_valid(form)
-                cookie_kwargs = {
-                    "secure": True,
-                    "httponly": True,
-                    "samesite": "Strict"
-                }
-                resp.set_signed_cookie(FOUNDRY_SESSION_COOKIE, session_id, **cookie_kwargs)
-                resp.set_signed_cookie(FOUNDRY_USERNAME_COOKIE, canon_username, **cookie_kwargs)
-                return resp
-        return super().form_valid(form)
 
 def download_single_release(version_object,foundry_session):
     with requests.Session() as rsession:
@@ -108,8 +55,8 @@ def download_single_release(version_object,foundry_session):
 
 @admin.action(description=_("Download Release"))
 def download_release(modeladmin, request, queryset):
-    foundry_session = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE, default=None)
-    foundry_username = request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE, default=None)
+    foundry_session = request.get_signed_cookie(foundry_interaction.FOUNDRY_SESSION_COOKIE, default=None)
+    foundry_username = request.get_signed_cookie(foundry_interaction.FOUNDRY_USERNAME_COOKIE, default=None)
     if foundry_session and foundry_username:
         for release in queryset:
             reactor.callInThread(download_single_release, release, foundry_session)
@@ -129,8 +76,8 @@ def load_licenses_threaded(foundry_session, foundry_username):
 
 @admin.action(description=_("Fetch Licenses"))
 def load_licences(modeladmin, request, queryset):
-    foundry_session = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE, default=None)
-    foundry_username = request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE, default=None)
+    foundry_session = request.get_signed_cookie(foundry_interaction.FOUNDRY_SESSION_COOKIE, default=None)
+    foundry_username = request.get_signed_cookie(foundry_interaction.FOUNDRY_USERNAME_COOKIE, default=None)
     if foundry_session and foundry_username:
         for release in queryset:
             reactor.callInThread(load_licenses_threaded, foundry_session, foundry_username)

@@ -10,6 +10,10 @@ from twisted.python import log
 
 from twisted.internet import reactor
 from twisted.web import proxy, server
+from django.http import HttpResponse
+
+FOUNDRY_SESSION_COOKIE = "foundry_session"
+FOUNDRY_USERNAME_COOKIE = "foundry_username"
 
 BASE_URL = "https://foundryvtt.com"
 LOGIN_URL = f"{BASE_URL}/auth/login/"
@@ -68,6 +72,24 @@ def get_token(session):
         return csrf_token_element['value']
     else:
         return None
+
+def foundry_site_login(username, password, resp=None):
+    if not resp:
+        resp = HttpResponse()
+    with requests.Session() as rsession:
+        tok = get_token(rsession)
+        canon_username = login(rsession, tok, username, password)
+        if canon_username:
+            cookies = rsession.cookies.get_dict()
+            session_id = cookies.get('sessionid')
+            
+            cookie_kwargs = {
+                "secure": True,
+                "httponly": True,
+                "samesite": "Strict"
+            }
+            resp.set_signed_cookie(FOUNDRY_SESSION_COOKIE, session_id, **cookie_kwargs)
+            resp.set_signed_cookie(FOUNDRY_USERNAME_COOKIE, canon_username, **cookie_kwargs)
 
 def login(session, csrf_token, username, password):
     form_body = {

@@ -3,6 +3,7 @@ from django.contrib.auth.views import LogoutView
 from django.conf import settings
 from .views import (
     RefractoryLoginView, PanelView,
+    FoundryLoginFormView,
     activate_instance, activate_world,
     login_to_instance, login_to_instance_as_user,
     login_to_instance_as_admin, login_to_instance_as_managed_gm,
@@ -12,6 +13,7 @@ urlpatterns = [
     path('login/', RefractoryLoginView.as_view(), name="base_login"),
     path('logout/', LogoutView.as_view(), {'next_page': settings.LOGOUT_REDIRECT_URL}, name='logout'),
     path('admin/login/', RefractoryLoginView.as_view(), name='override_admin_login'),
+    path('admin/foundry_login/', FoundryLoginFormView.as_view(), name="foundry_site_login"),
     path('panel/', PanelView.as_view(), name='panel'),
     path('instance/<slug:instance_slug>/vtt_login/', login_to_instance, name='vtt_choose_user'),
     path('instance/<slug:instance_slug>/vtt_login/<int:user_ix>/', login_to_instance_as_user, name='vtt_login'),

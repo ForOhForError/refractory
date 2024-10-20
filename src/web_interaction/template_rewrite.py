@@ -28,8 +28,9 @@ def rewrite_template_payload(payload, instance, response_to=None):
                     first_data = payload.data[0] 
                     if isinstance(first_data, dict):
                         addresses = first_data.get('addresses')
-                        addresses["local"] = instance.amend_invite_url(addresses.get("local",""))
-                        addresses["remote"] = instance.amend_invite_url(addresses.get("remote",""))
+                        if addresses:
+                            addresses["local"] = instance.amend_invite_url(addresses.get("local",""))
+                            addresses["remote"] = instance.amend_invite_url(addresses.get("remote",""))
                     return Packet(
                         packet_type=payload.packet_type, 
                         data=[first_data], 
