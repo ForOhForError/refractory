@@ -328,7 +328,6 @@ class FoundryInstance(models.Model):
             login_url,
             data = form_body
         )
-        print(dict(session.cookies))
         return self.user_facing_base_url, dict(session.cookies)
 
     def wait_for_ready(self):
