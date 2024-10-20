@@ -21,18 +21,33 @@
         {% for instance in instances %}
             {% for world in instance.worlds %}
                 <div class="world-card" {% if world.active %}style="background-image: url({{instance.active_background_url}})"{% else %}style="background-image: url({{instance.default_background_url}})"{% endif %}>
-                    <h3>{{world.title}}</h3>
-                    <p>Hosted on {{instance.display_name}}</p>
-                    {% if not world.active %}
-                        <form action="{% url 'activate_world' instance.instance_slug world.id %}" method="post">
-                            {% csrf_token %}
+                    <form class="fillspace"
+                        {% if world.active %} 
+                            action="{{instance.user_facing_base_url}}"
+                            target="_blank"
+                            method="get"
+                        {% else %}
+                            action="{% url 'activate_world' instance.instance_slug world.id %}" 
+                            method="post"
+                        {% endif %}
+                    >
+                        {% if world.active %}
+                            <button class="fillspace" type="submit">
+                        {% endif %}
+                        {% csrf_token %}
+                        <h3>{{world.title}}</h3>
+                        <p>Hosted on {{instance.display_name}}</p>
+                        {% if not world.active %}
                             <button type="submit" name="Activate"><p>Activate</p></button>
-                        </form>
-                    {% else %}
-                        {% for _ in instance.active_player_range %}
-                            <p>😊</p>
-                        {% endfor%}
-                    {% endif %}
+                        {% else %}
+                            {% for _ in instance.active_player_range %}
+                                <p>😊</p>
+                            {% endfor%}
+                        {% endif %}
+                        {% if world.active %}
+                            </button>
+                        {% endif %}
+                    </form>
                 </div>
             {% endfor %}
         {% endfor %}
@@ -49,28 +64,26 @@
     </div>
     <div class="instance-list" id="instance-list">
         {% for instance in instances %}
-            <div class="instance-card" name="{{ instance.instance_name }}">
+            <form 
                 {% if instance.is_active %} 
-                    <div 
-                        class="instance-info-container" name="{{ instance.instance_name }}"
-                        onclick="window.open('{{instance.user_facing_base_url}}','_blank')"
-                    >
-                        <h3>{{ instance.display_name }}</h3>
-                        <p>{{ instance.is_active }}</p>
-                        {{ instance.instance_state }}
-                    </div>
+                    action="{{instance.user_facing_base_url}}" 
+                    target="_blank"
+                    method="get"
                 {% else %}
-                    <form action="{% url 'activate_instance' instance.instance_slug %}" method="post">
-                        {% csrf_token %}
-                        <div class="instance-info-container" name="{{ instance.instance_name }}">
-                            <h3>{{ instance.display_name }}</h3>
-                            <p>{{ instance.is_active }}</p>
-                            <button type="submit" name="Activate"><p>Activate</p></button>
-                        </div>
-                    </form>
+                    action="{% url 'activate_instance' instance.instance_slug %}"
+                    method="post"
                 {% endif %}
-                    
-            </div>
+            >
+                <div {% if instance.is_active %} type="submit" {% endif %} class="instance-card" name="{{ instance.instance_name }}">
+                    {% csrf_token %}
+                    <h3>{{ instance.display_name }}</h3>
+                    <p>{{ instance.is_active }}</p>
+                    {{ instance.instance_state }}
+                    {% if not instance.is_active %} 
+                        <button type="submit"><p>Activate</p></button>
+                    {% endif %}
+                </div>
+            </form>
         {% endfor %}
     </div>
 </section>

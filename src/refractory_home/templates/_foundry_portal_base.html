@@ -35,12 +35,16 @@
                     </button>
                 </form>
             {% endif %}
-            <button class="nav-link-icon" type="button" onclick="location.href='https://foundryvtt.com';">
-                <img class="fa-fake" src="{% static '/foundryportal/images/foundry-fa-fake.png' %}" alt="Logout">
-            </button>
-            <button class="nav-link-icon" type="button" onclick="location.href='https://github.com/forohforerror/refractory';">
-                <img class="fa-fake" src="{% static '/foundryportal/images/github-fa-fake.png' %}" alt="GitHub Repository">
-            </button>
+            <form class="inline-form" action="https://foundryvtt.com/" method="get">
+                <button class="nav-link-icon" type="submit">
+                    <img class="fa-fake" src="{% static '/foundryportal/images/foundry-fa-fake.png' %}" alt="FoundryVTT">
+                </button>
+            </form>
+            <form class="inline-form" action="https://github.com/forohforerror/refractory/" method="get">
+                <button class="nav-link-icon" type="submit">
+                    <img class="fa-fake" src="{% static '/foundryportal/images/github-fa-fake.png' %}" alt="GitHub Repository">
+                </button>
+            </form>
         </nav>
         {% block notifs %}{% endblock %}
         <!-- Main Content -->

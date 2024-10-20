@@ -9,6 +9,23 @@ src: url('../fonts/NodestoCapsCondensed.otf') format('opentype');
     font-family: 'AmiriRegular';
     src: url('../fonts/AmiriBold.ttf') format('truetype');
 }
+
+.fillspace {
+    all: initial;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+}
+
+.fillspace:hover {
+    background: none;
+    border-color: none;
+    transition: none;
+}
+
 /* General Styles */
 body {
     margin: 0;
@@ -133,7 +150,7 @@ h1 {
     text-align: center;
 }
 .thin-panel {
-    flex-basis: 300px;
+    flex-basis: 30%;
     text-align: center;
 }
 .sidebar {
@@ -239,6 +256,7 @@ a:hover
 }
 .world-card p {
     margin: 1rem;
+    font-family: 'Signika', sans-serif;
     color: white;
     text-shadow: 1px 1px 4px black;
     text-align: left;
