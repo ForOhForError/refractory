@@ -13,6 +13,9 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.templatetags.static import static as static_url
 
+from django.db.models.signals import pre_save, post_save, pre_delete, post_delete
+from django.dispatch import receiver
+
 from websockets.sync.client import connect
 
 from bs4 import BeautifulSoup
@@ -134,6 +137,14 @@ class FoundryInstance(models.Model):
             user_password="",
             owner=None
         ).save()
+        
+    def get_managed_gm(self):
+        world_id = self.active_world_id
+        if world_id:
+            managed_gms = ManagedFoundryUser.objects.filter(managed_gm=True, instance=self, world_id=world_id)
+            if len(managed_users):
+                return managed_gms.first()
+        return None
     
     def pre_activate(self, port):
         self.inject_config(port=port, clear_admin_pass=True)
@@ -435,25 +446,35 @@ class FoundryInstance(models.Model):
             except Exception as ex:
                 pass
         return {}
-
-    def get_ws_response(self, initial_event_type, initial_event_data=None):
+    
+    def open_socketio_connection(self, session=None):
         base_url = self.server_facing_base_url
+        login_url = f"{base_url}/join"
         if base_url:
-            login_url = f"{base_url}/join"
-            session_id = requests.get(login_url).cookies.get('session', None)
+            if not session:
+                session = requests.Session()
+            session.get(login_url)
+            session_id = session.cookies.get('session', None)
             if session_id:
                 connect_url = f"{base_url.replace('http','ws')}?session={session_id}"
-                with socketio.SimpleClient() as sio:
-                    sio.connect(
-                        connect_url, 
-                        socketio_path=self.socketio_path,
-                        transports=["websocket"]
-                    )
-                    if initial_event_data == None:
-                        event = sio.call(initial_event_type)
-                    else:
-                        event = sio.call(initial_event_type, initial_event_data)
-                    return event
+                sio = socketio.SimpleClient()
+                sio.connect(
+                    connect_url, 
+                    socketio_path=self.socketio_path,
+                    transports=["websocket"]
+                )
+                return sio
+        return None
+
+    def get_ws_response(self, initial_event_type, initial_event_data=None, session=None):
+        sio = self.open_socketio_connection(session=session)
+        if sio:
+            with sio:
+                if initial_event_data == None:
+                    event = sio.call(initial_event_type)
+                else:
+                    event = sio.call(initial_event_type, initial_event_data)
+                return event
         return {}
 
     def get_setup_info(self):
@@ -564,3 +585,10 @@ class ManagedFoundryUser(models.Model):
     instance = models.ForeignKey(FoundryInstance, on_delete=models.CASCADE)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     managed_gm = models.BooleanField(default=False)
+
+# @receiver(post_save, sender=ManagedFoundryUser)
+# def register_user_post_save(sender, instance, created, **kwargs):
+#     if created:
+#         print(f"New user created: {instance}")
+#     else:
+#         print(f"User updated: {instance}")
