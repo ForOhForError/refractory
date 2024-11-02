@@ -22,6 +22,10 @@ src: url('../fonts/NodestoCapsCondensed.otf') format('opentype');
     color: #e8eff7;
 }
 
+.hidden-form {
+    display: none;
+}
+
 /* General Styles */
 body {
     margin: 0;
@@ -49,7 +53,7 @@ body {
     display: inline;
 }
 
-button:not(.fillspace) {
+button {
     background: rgba(0,0,0,0.5);
     border: 1px solid #dab55b;
     color: #e8eff7;
@@ -59,7 +63,7 @@ button:not(.fillspace) {
     border-radius: 4px;
 }
 
-button:not(.fillspace):hover {
+button:hover {
     background: #dab55b;
     border-color: #f5cc66;
     transition: background-color 0.5s, border-color 0.5s;
