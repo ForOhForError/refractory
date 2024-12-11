@@ -12,6 +12,7 @@ import os.path
 
 from django.urls import set_script_prefix
 from twisted.web.util import redirectTo
+from twisted.web.server import NOT_DONE_YET
 
 from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
 from django.urls import reverse
@@ -25,7 +26,9 @@ class HomeResource(Resource):
     isLeaf = True
     def render(self, request):
         redirect_addr = reverse('panel')
-        return redirectTo(redirect_addr.encode(), request)
+        request.redirect(redirect_addr.encode())
+        request.finish()
+        return NOT_DONE_YET
 
 class RefractoryServer:
     def __init__(self):
