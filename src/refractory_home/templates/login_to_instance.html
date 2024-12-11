@@ -9,7 +9,7 @@
     <h2>Select A User</h2>
     <div>
         {% for user in users %}
-            <form action="{% url 'instance_admin_login' instance.instance_slug forloop.counter0 %}" method="post">
+            <form action="{% url 'vtt_login' instance.instance_slug forloop.counter0 %}" method="post">
                 {% csrf_token %}
                 <button type="submit"><p>{{user.user_name}}</p></button>
             </form>

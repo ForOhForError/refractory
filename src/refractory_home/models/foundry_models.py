@@ -7,7 +7,7 @@ import secrets
 import shutil
 from enum import Enum
 
-from django.db import models
+from django.db import models, transaction
 from django.core.validators import RegexValidator, validate_unicode_slug
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
@@ -127,6 +127,61 @@ class FoundryInstance(models.Model):
         else:
             return FoundryState.INACTIVE
     
+    def sync_world(self, join_info=None):
+        # ex: 427["modifyDocument",{"type":"User","action":"delete","operation":{"parent":null,"pack":null,"ids":["zCDhtwNJ6e4tcqWk"],"modifiedTime":1730566218238,"deleteAll":false,"render":true}}]
+        #                          {"type":"User","action":"create","data":[{"_id":null,"character":null,"color":"#b9cc28","hotbar":{},"name":"Player3","password":"","permissions":{},"role":1,"flags":{}}],"options":{"temporary":false,"renderSheet":false,"render":true}}]
+        try:
+            print("syncing world...")
+            if not join_info:
+                join_info = self.get_join_info()
+            world_id = join_info.get("world",{}).get("id")
+            
+            gm = self.get_managed_gm(world_id=world_id)
+            if not gm:
+                if world_id and not self.managedfoundryuser_set.filter(world_id=world_id, managed_gm=True).exists():
+                    gamemaster_candidate_user = join_info.get("users", [{}])[0]
+                    if gamemaster_candidate_user.get("role") == 4:
+                        user_id, user_name = gamemaster_candidate_user.get("_id"), gamemaster_candidate_user.get("name")
+                        gm = self.register_managed_gm(world_id, user_id, user_name)
+            if gm:
+                with requests.Session() as session:
+                    self.vtt_session_login(gm, session)
+                    sio = self.open_socketio_connection(session=session)
+                    #breakpoint()
+                    if sio:
+                        with sio:
+                            print(sio)
+                            player_info_command = "getPlayersData" if self.version_tuple[0] > 8 else "getSetupData"
+                            players_data = sio.call(player_info_command)
+                            user_dict = {
+                                user.get("_id"):user
+                                for user in
+                                players_data.get("users", [])
+                            }
+                            for re_user in ManagedFoundryUser.objects.filter(managed_gm=False, instance=self, world_id=world_id):
+                                vtt_user = user_dict.get(re_user.user_id)
+                                if vtt_user:
+                                    if vtt_user.get("name"):
+                                        re_user.user_name = vtt_user.get("name")
+                                        re_user.save()
+                                else:
+                                    event, data = re_user.get_create_message()
+                                    #return
+                                    print(f"calling {event} with {data}")
+                                    try:
+                                        user_response = sio.call(event, data=data, timeout=1)
+                                    except TimeoutError:
+                                        print(f"timeout!")
+                                        user_response = {}
+                                        continue
+                                    print(f"done")
+                                    print(user_response)
+                                    vtt_user_id = user_response.get("userId")
+                                    re_user.user_id = vtt_user_id
+                                    re_user.save()
+        except Exception as ex:
+            print(ex)
+    
     def register_managed_gm(self, world_id, user_id, user_name):
         managed_gm = ManagedFoundryUser(
             instance=self,
@@ -137,12 +192,14 @@ class FoundryInstance(models.Model):
             user_password="",
             owner=None
         ).save()
+        return gm
         
-    def get_managed_gm(self):
-        world_id = self.active_world_id
+    def get_managed_gm(self, world_id=None):
+        if not world_id:
+            world_id = self.active_world_id
         if world_id:
             managed_gms = ManagedFoundryUser.objects.filter(managed_gm=True, instance=self, world_id=world_id)
-            if len(managed_users):
+            if len(managed_gms):
                 return managed_gms.first()
         return None
     
@@ -331,6 +388,7 @@ class FoundryInstance(models.Model):
             data = form_body
         )
         if login_res.ok:
+            print("login okay!")
             return login_res.json().get("redirect"), dict(session.cookies)
         else:
             return None, None
@@ -429,35 +487,34 @@ class FoundryInstance(models.Model):
     def version_tuple(self):
         return tuple([int(part) for part in self.foundry_version.version_string.split(".")])
 
-    def get_join_info(self):
+    def get_join_info(self, sync=False):
         if self.instance_state == FoundryState.JOIN:
             try:
                 if self.version_tuple[0] > 8:
                     join_info = self.get_ws_response("getJoinData")
                 else:
                     join_info = self.get_ws_response("getSetupData")
-                world_id = join_info.get("world", {}).get("id", None)
-                if world_id and not self.managedfoundryuser_set.filter(world_id=world_id, managed_gm=True).exists():
-                    gamemaster_candidate_user = join_info.get("users", [{}])[0]
-                    if gamemaster_candidate_user.get("role") == 4:
-                        user_id, user_name = gamemaster_candidate_user.get("_id"), gamemaster_candidate_user.get("name")
-                        self.register_managed_gm(world_id, user_id, user_name)
-                return join_info
+                if sync:
+                    self.sync_world(join_info)
+                if join_info:
+                    return join_info
             except Exception as ex:
                 pass
         return {}
     
-    def open_socketio_connection(self, session=None):
+    def open_socketio_connection(self, session=None, log_internals=False):
         base_url = self.server_facing_base_url
         login_url = f"{base_url}/join"
         if base_url:
             if not session:
                 session = requests.Session()
-            session.get(login_url)
             session_id = session.cookies.get('session', None)
+            if not session_id:
+                session.get(login_url)
+                session_id = session.cookies.get('session', None)
             if session_id:
                 connect_url = f"{base_url.replace('http','ws')}?session={session_id}"
-                sio = socketio.SimpleClient()
+                sio = socketio.SimpleClient(logger=log_internals, engineio_logger=log_internals)
                 sio.connect(
                     connect_url, 
                     socketio_path=self.socketio_path,
@@ -473,14 +530,15 @@ class FoundryInstance(models.Model):
                 if initial_event_data == None:
                     event = sio.call(initial_event_type)
                 else:
-                    event = sio.call(initial_event_type, initial_event_data)
+                    event = sio.call(initial_event_type, data=initial_event_data)
                 return event
         return {}
 
     def get_setup_info(self):
         try:
-            join_info = self.get_ws_response("getSetupData")
-            world_id = join_info.get("world", {}).get("id", None)
+            setup_info = self.get_ws_response("getSetupData")
+            if setup_info:
+                return setup_info
         except Exception as ex:
             pass
         return {}
@@ -585,6 +643,67 @@ class ManagedFoundryUser(models.Model):
     instance = models.ForeignKey(FoundryInstance, on_delete=models.CASCADE)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     managed_gm = models.BooleanField(default=False)
+    
+    def get_create_message(self):
+        #424["modifyDocument",{"type":"User","action":"create","operation":{"data":[{"name":"Player2","role":1,"_id":null,"password":"","avatar":null,"character":null,"color":"#bf28cc","pronouns":"","hotbar":{},"permissions":{},"flags":{},"_stats":{"coreVersion":"12.331","systemId":null,"systemVersion":null,"createdTime":null,"modifiedTime":null,"lastModifiedBy":null,"compendiumSource":null,"duplicateSource":null}}],"parent":null,"modifiedTime":1730569009722,"render":true,"renderSheet":false}}]
+        #                     {"type":"User","action":"create","data":[{"_id":null,"character":null,"color":"#b9cc28","hotbar":{},"name":"Player3","password":"","permissions":{},"role":1,"flags":{}}],"options":{"temporary":false,"renderSheet":false,"render":true}}
+        message_data = {
+            "type": "User",
+            "action": "create",
+            "operation": {
+                "data": [
+                    {
+                        "name": "Player2",
+                        "role": 1,
+                        "_id":None,
+                        "password": self.user_password,
+                        #"password": "",
+                        "avatar": None,
+                        "character": None,
+                        "color":"#bf28cc",
+                        "pronouns":"",
+                        "hotbar":{},
+                        "permissions":{},
+                        "flags":{},
+                        "_stats":{
+                            "coreVersion":"12.331",
+                            "systemId":None,
+                            "systemVersion":None,
+                            "createdTime":None,
+                            "modifiedTime":None,
+                            "lastModifiedBy":None,
+                            "compendiumSource":None,
+                            "duplicateSource":None
+                        }
+                    }
+                ],
+                "parent":None,
+                "modifiedTime":int(time.time()),
+                "render":True,
+                "renderSheet":False,
+            }
+        }
+        message_data = {
+            "type":"User",
+            "action":"create",
+            "data":[{
+                "_id":None,
+                "character":None,
+                "color":"#b9cc28",
+                "hotbar":{},
+                "name":self.user_name,
+                "password":self.user_password,
+                "permissions":{},
+                "role":1,
+                "flags":{}
+            }],
+            "options":{
+                "temporary":False,
+                "renderSheet":False,
+                "render":True
+            }
+        }
+        return "modifyDocument", message_data
 
 # @receiver(post_save, sender=ManagedFoundryUser)
 # def register_user_post_save(sender, instance, created, **kwargs):

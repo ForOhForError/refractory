@@ -90,7 +90,7 @@ class FoundryLoginFormView(FormView, UserPassesTestMixin):
 def login_to_instance(request, instance_slug):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        world_id = instance.get_join_info().get("world", {}).get("id")
+        world_id = instance.get_join_info(sync=True).get("world", {}).get("id")
         managed_users = ManagedFoundryUser.objects.filter(owner=request.user, instance=instance, world_id=world_id)
         return render(request, "login_to_instance.html", {"users":managed_users, "instance": instance})
     except FoundryInstance.DoesNotExist:
