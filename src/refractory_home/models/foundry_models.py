@@ -128,10 +128,7 @@ class FoundryInstance(models.Model):
             return FoundryState.INACTIVE
     
     def sync_world(self, join_info=None):
-        # ex: 427["modifyDocument",{"type":"User","action":"delete","operation":{"parent":null,"pack":null,"ids":["zCDhtwNJ6e4tcqWk"],"modifiedTime":1730566218238,"deleteAll":false,"render":true}}]
-        #                          {"type":"User","action":"create","data":[{"_id":null,"character":null,"color":"#b9cc28","hotbar":{},"name":"Player3","password":"","permissions":{},"role":1,"flags":{}}],"options":{"temporary":false,"renderSheet":false,"render":true}}]
         try:
-            print("syncing world...")
             if not join_info:
                 join_info = self.get_join_info()
             world_id = join_info.get("world",{}).get("id")
@@ -147,10 +144,8 @@ class FoundryInstance(models.Model):
                 with requests.Session() as session:
                     self.vtt_session_login(gm, session)
                     sio = self.open_socketio_connection(session=session)
-                    #breakpoint()
                     if sio:
                         with sio:
-                            print(sio)
                             player_info_command = "getPlayersData" if self.version_tuple[0] > 8 else "getSetupData"
                             players_data = sio.call(player_info_command)
                             user_dict = {
@@ -161,24 +156,24 @@ class FoundryInstance(models.Model):
                             for re_user in ManagedFoundryUser.objects.filter(managed_gm=False, instance=self, world_id=world_id):
                                 vtt_user = user_dict.get(re_user.user_id)
                                 if vtt_user:
-                                    if vtt_user.get("name"):
-                                        re_user.user_name = vtt_user.get("name")
+                                    vtt_user_name = vtt_user.get("name")
+                                    if vtt_user_name:
+                                        re_user.user_name = vtt_user_name
                                         re_user.save()
                                 else:
                                     event, data = re_user.get_create_message()
-                                    #return
-                                    print(f"calling {event} with {data}")
                                     try:
                                         user_response = sio.call(event, data=data, timeout=1)
                                     except TimeoutError:
                                         print(f"timeout!")
                                         user_response = {}
                                         continue
-                                    print(f"done")
-                                    print(user_response)
-                                    vtt_user_id = user_response.get("userId")
-                                    re_user.user_id = vtt_user_id
-                                    re_user.save()
+                                    result = user_response.get("result", [None])[0]
+                                    if result:
+                                        print(f"registration succeeded; saving user")
+                                        vtt_user_id = result.get("_id")
+                                        re_user.user_id = vtt_user_id
+                                        re_user.save()
         except Exception as ex:
             print(ex)
     
@@ -388,7 +383,6 @@ class FoundryInstance(models.Model):
             data = form_body
         )
         if login_res.ok:
-            print("login okay!")
             return login_res.json().get("redirect"), dict(session.cookies)
         else:
             return None, None
@@ -645,69 +639,35 @@ class ManagedFoundryUser(models.Model):
     managed_gm = models.BooleanField(default=False)
     
     def get_create_message(self):
-        #424["modifyDocument",{"type":"User","action":"create","operation":{"data":[{"name":"Player2","role":1,"_id":null,"password":"","avatar":null,"character":null,"color":"#bf28cc","pronouns":"","hotbar":{},"permissions":{},"flags":{},"_stats":{"coreVersion":"12.331","systemId":null,"systemVersion":null,"createdTime":null,"modifiedTime":null,"lastModifiedBy":null,"compendiumSource":null,"duplicateSource":null}}],"parent":null,"modifiedTime":1730569009722,"render":true,"renderSheet":false}}]
-        #                     {"type":"User","action":"create","data":[{"_id":null,"character":null,"color":"#b9cc28","hotbar":{},"name":"Player3","password":"","permissions":{},"role":1,"flags":{}}],"options":{"temporary":false,"renderSheet":false,"render":true}}
         message_data = {
             "type": "User",
             "action": "create",
             "operation": {
                 "data": [
                     {
-                        "name": "Player2",
+                        "name": self.user_name,
                         "role": 1,
                         "_id":None,
                         "password": self.user_password,
-                        #"password": "",
                         "avatar": None,
                         "character": None,
                         "color":"#bf28cc",
                         "pronouns":"",
                         "hotbar":{},
                         "permissions":{},
-                        "flags":{},
-                        "_stats":{
-                            "coreVersion":"12.331",
-                            "systemId":None,
-                            "systemVersion":None,
-                            "createdTime":None,
-                            "modifiedTime":None,
-                            "lastModifiedBy":None,
-                            "compendiumSource":None,
-                            "duplicateSource":None
-                        }
+                        "flags":{}
                     }
                 ],
+                "options": {
+                    "temporary":False,
+                    "renderSheet":False,
+                    "render":True
+                },
                 "parent":None,
                 "modifiedTime":int(time.time()),
                 "render":True,
                 "renderSheet":False,
             }
         }
-        message_data = {
-            "type":"User",
-            "action":"create",
-            "data":[{
-                "_id":None,
-                "character":None,
-                "color":"#b9cc28",
-                "hotbar":{},
-                "name":self.user_name,
-                "password":self.user_password,
-                "permissions":{},
-                "role":1,
-                "flags":{}
-            }],
-            "options":{
-                "temporary":False,
-                "renderSheet":False,
-                "render":True
-            }
-        }
         return "modifyDocument", message_data
 
-# @receiver(post_save, sender=ManagedFoundryUser)
-# def register_user_post_save(sender, instance, created, **kwargs):
-#     if created:
-#         print(f"New user created: {instance}")
-#     else:
-#         print(f"User updated: {instance}")
