@@ -206,7 +206,7 @@ class FoundryInstance(models.Model):
         except Exception as ex:
             print(ex)
 
-    def register_managed_gm(self, world_id, user_id, user_name) -> ManagedFoundryUser:
+    def register_managed_gm(self, world_id, user_id, user_name) -> "ManagedFoundryUser":
         managed_gm = ManagedFoundryUser(
             instance=self,
             world_id=world_id,
@@ -218,7 +218,7 @@ class FoundryInstance(models.Model):
         ).save()
         return managed_gm
 
-    def get_managed_gm(self, world_id=None) -> ManagedFoundryUser | None:
+    def get_managed_gm(self, world_id=None) -> "ManagedFoundryUser | None":
         if not world_id:
             world_id = self.active_world_id
         if world_id:
@@ -386,7 +386,7 @@ class FoundryInstance(models.Model):
         RefractoryServer.get_server().remove_foundry_instance(self)
 
     @classmethod
-    def active_instances(cls) -> cls:
+    def active_instances(cls) -> "cls":
         return cls.objects.filter(
             instance_name__in=RefractoryServer.get_server().get_active_instance_names()
         )
@@ -601,7 +601,7 @@ class FoundryVersion(models.Model):
         )
 
     @property
-    def downloaded(self) -> FoundryVersion.DownloadStatus:
+    def downloaded(self) -> "FoundryVersion.DownloadStatus":
         return self.download_status == FoundryVersion.DownloadStatus.DOWNLOADED
 
     def __str__(self) -> str:
@@ -657,7 +657,7 @@ class FoundryLicense(models.Model):
     @classmethod
     def find_free_if_available(
         cls,
-    ) -> typing.Tuple[FoundryLicense | None, FoundryInstance | None]:
+    ) -> "typing.Tuple[FoundryLicense | None, FoundryInstance | None]":
         active_instance_names = (
             RefractoryServer.get_server().get_active_instance_names()
         )

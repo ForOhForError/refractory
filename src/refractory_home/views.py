@@ -12,7 +12,6 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import FormView
 
-
 from refractory_home.models import FoundryInstance, FoundryState, ManagedFoundryUser
 from web_interaction.foundry_interaction import (
     FOUNDRY_USERNAME_COOKIE,
@@ -225,5 +224,9 @@ def activate_instance(request, instance_slug):
             instance.activate()
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
-    messages.info(request, _("Activated instance %(instance_name)") % {"instance_name": instance.display_name})
+    messages.info(
+        request,
+        _("Activated instance %(instance_name)s")
+        % {"instance_name": instance.display_name},
+    )
     return redirect(reverse("panel"))
