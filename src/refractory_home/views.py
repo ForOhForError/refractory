@@ -7,9 +7,11 @@ from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import FormView
+
 
 from refractory_home.models import FoundryInstance, FoundryState, ManagedFoundryUser
 from web_interaction.foundry_interaction import (
@@ -42,7 +44,7 @@ class RefractoryLoginView(LoginView):
     template_name = "refractory_login.html"
 
     def form_invalid(self, form):
-        messages.error(self.request, "Invalid username or password")
+        messages.error(self.request, _("Invalid username or password"))
         return self.render_to_response(self.get_context_data(form=form))
 
 
@@ -101,8 +103,10 @@ def login_to_instance(request, instance_slug):
             {"users": managed_users, "instance": instance},
         )
     except FoundryInstance.DoesNotExist:
-        raise PermissionDenied
-    raise PermissionDenied
+        messages.error(request, _("Instance does not exist."))
+        return redirect(reverse("panel"))
+    messages.error(request, _("Login failed."))
+    return redirect(reverse("panel"))
 
 
 @login_required
@@ -126,9 +130,9 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
                         )
                 return redirect_res
     except FoundryInstance.DoesNotExist:
-        messages.error(request, "Instance does not exist.")
+        messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))
-    messages.error(request, "Login failed.")
+    messages.error(request, _("Login failed."))
     return redirect(reverse("panel"))
 
 
@@ -151,10 +155,11 @@ def login_to_instance_as_admin(request, instance_slug):
                         )
                 return redirect_res
         else:
-            messages.error(request, "Bad Instance State")
+            messages.error(request, _("Bad Instance State"))
     except FoundryInstance.DoesNotExist:
-        messages.error(request, "Bad request")
+        messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))
+    messages.error(request, _("Login failed."))
     return redirect(reverse("panel"))
 
 
@@ -181,9 +186,9 @@ def login_to_instance_as_managed_gm(request, instance_slug):
                             )
                     return redirect_res
     except FoundryInstance.DoesNotExist:
-        messages.error(request, "Bad request")
+        messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))
-    messages.error(request, "Login failed.")
+    messages.error(request, _("Login failed."))
     return redirect(reverse("panel"))
 
 
@@ -203,11 +208,11 @@ def activate_world(request, instance_slug, world_id):
                     return redirect(reverse("panel"))
             world_launched = instance.activate_world(world_id, force=False)
             if world_launched:
-                messages.info(request, f"World activated.")
+                messages.info(request, _("World activated."))
             else:
-                messages.info(request, "World could not be activated.")
+                messages.info(request, _("World could not be activated."))
         except FoundryInstance.DoesNotExist:
-            messages.info(request, f"Instance ID Invalid")
+            messages.error(request, _("Instance does not exist."))
     return redirect(reverse("panel"))
 
 
@@ -220,5 +225,5 @@ def activate_instance(request, instance_slug):
             instance.activate()
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
-    messages.info(request, f"Activated instance {instance.display_name}")
+    messages.info(request, _("Activated instance %(instance_name)") % {"instance_name": instance.display_name})
     return redirect(reverse("panel"))
