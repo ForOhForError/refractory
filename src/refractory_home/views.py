@@ -114,8 +114,10 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
                         redirect_res.set_cookie(key=key, value=value, samesite='Strict', secure=False)
                 return redirect_res
     except FoundryInstance.DoesNotExist:
-        raise PermissionDenied
-    raise PermissionDenied
+        messages.error(request,'Instance does not exist.')
+        return redirect(reverse("panel"))
+    messages.error(request,'Login failed.')
+    return redirect(reverse("panel"))
 
 @login_required
 @staff_member_required
@@ -159,8 +161,10 @@ def login_to_instance_as_managed_gm(request, instance_slug):
                             redirect_res.set_cookie(key=key, value=value, samesite='Strict', secure=False)
                     return redirect_res
     except FoundryInstance.DoesNotExist:
-        raise PermissionDenied
-    raise PermissionDenied
+        messages.error(request,'Bad request')
+        return redirect(reverse("panel"))
+    messages.error(request,'Login failed.')
+    return redirect(reverse("panel"))
 
 
 @login_required

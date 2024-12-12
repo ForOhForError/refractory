@@ -6,6 +6,7 @@ import time
 import secrets
 import shutil
 from enum import Enum
+import typing
 
 from django.db import models, transaction
 from django.core.validators import RegexValidator, validate_unicode_slug
@@ -33,6 +34,9 @@ DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
 
 class FoundryState(Enum):
+    """
+    Used to pass the current state of a foundry vtt instance.
+    """    
     INACTIVE = 0
     LICENSE = 1
     LICENSE_EULA = 2
@@ -40,6 +44,7 @@ class FoundryState(Enum):
     JOIN = 4
     ACTIVE_UNKNOWN = 99
 
+# Map redirect url to instance state
 URL_TO_STATE = {
     "license": FoundryState.LICENSE_EULA,
     "setup": FoundryState.SETUP,
@@ -47,11 +52,17 @@ URL_TO_STATE = {
     "join": FoundryState.JOIN
 }
 
+# Search string to differentiate LICENSE and LICENSE_EULA states
 LICENSE_STATE_SEARCH_STRING = 'form id="license-key"' # scuffed but works
 
 from web_interaction.template_rewrite import REWRITE_RULES
 
-def generate_default_password():
+def generate_default_password() -> str:
+    """Generates a random hex string as an internal password for foundry managed resources.
+
+    :return: A random hex string to use as a password
+    :rtype: str
+    """    
     return secrets.token_hex(32)
 
 class FoundryInstance(models.Model):
@@ -68,7 +79,7 @@ class FoundryInstance(models.Model):
         related_name="+",
     )
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.display_name if self.display_name else self.instance_name
     
     @classmethod
@@ -77,7 +88,7 @@ class FoundryInstance(models.Model):
             print(instance)
     
     @property
-    def data_path(self):
+    def data_path(self) -> str:
         return os.path.join(DATA_PATH_BASE,self.instance_slug)
     
     def make_instance_folder(self):
@@ -87,23 +98,23 @@ class FoundryInstance(models.Model):
         shutil.rmtree(self.data_path)
     
     @property
-    def user_facing_base_url(self):
+    def user_facing_base_url(self) -> str:
         url = f"/{INSTANCE_PATH}/{self.instance_slug}"
         return url
     
     @property
-    def socketio_path(self):
+    def socketio_path(self) -> str:
         return f"{INSTANCE_PATH}/{self.instance_slug}/socket.io/"
     
     @property
-    def server_facing_base_url(self):
+    def server_facing_base_url(self) -> str:
         foundry_resource = RefractoryServer.get_server().get_foundry_resource(self)
         if foundry_resource:
             url = f"{foundry_resource.get_base_url()}/{INSTANCE_PATH}/{self.instance_slug}"
             return url
         return None
     
-    def amend_invite_url(self, invite_url):
+    def amend_invite_url(self, invite_url) -> str:
         foundry_resource = RefractoryServer.get_server().get_foundry_resource(self)
         if foundry_resource:
             replace_path = f":{foundry_resource.port}/{INSTANCE_PATH}/{self.instance_slug}/"
@@ -111,7 +122,7 @@ class FoundryInstance(models.Model):
         return invite_url
     
     @property
-    def instance_state(self):
+    def instance_state(self) -> FoundryState:
         foundry_resource = RefractoryServer.get_server().get_foundry_resource(self)
         if foundry_resource:
             response = requests.get(self.server_facing_base_url)
@@ -177,7 +188,7 @@ class FoundryInstance(models.Model):
         except Exception as ex:
             print(ex)
     
-    def register_managed_gm(self, world_id, user_id, user_name):
+    def register_managed_gm(self, world_id, user_id, user_name) -> ManagedFoundryUser:
         managed_gm = ManagedFoundryUser(
             instance=self,
             world_id=world_id,
@@ -187,9 +198,9 @@ class FoundryInstance(models.Model):
             user_password="",
             owner=None
         ).save()
-        return gm
+        return managed_gm
         
-    def get_managed_gm(self, world_id=None):
+    def get_managed_gm(self, world_id=None) -> ManagedFoundryUser|None:
         if not world_id:
             world_id = self.active_world_id
         if world_id:
@@ -198,7 +209,7 @@ class FoundryInstance(models.Model):
                 return managed_gms.first()
         return None
     
-    def pre_activate(self, port):
+    def pre_activate(self, port) -> str:
         self.inject_config(port=port, clear_admin_pass=True)
         self.clear_unmatched_license()
         return self.assign_license_if_able()
@@ -209,7 +220,7 @@ class FoundryInstance(models.Model):
         self.accept_eula_if_able()
     
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.instance_name in RefractoryServer.get_server().get_active_instance_names()
     
     def inject_config(self, port=30000, clear_admin_pass=False):
@@ -233,7 +244,7 @@ class FoundryInstance(models.Model):
         with open(config_file_path, "w") as config_file:
             config_file.write(json.dumps(config_obj))
     
-    def deactivate_world(self):
+    def deactivate_world(self) -> bool:
         if self.instance_state == FoundryState.JOIN:
             join_url = f"{self.server_facing_base_url}/join"
             response = requests.post(
@@ -251,7 +262,7 @@ class FoundryInstance(models.Model):
         else:
             return True
 
-    def activate_world(self, world_id, force=False):
+    def activate_world(self, world_id, force=False) -> bool:
         # preamble to deactivate an activated world
         if self.instance_state == FoundryState.JOIN:
             if self.active_world_id != world_id:
@@ -297,7 +308,7 @@ class FoundryInstance(models.Model):
             if os.path.exists(license_file_path):
                 os.remove(license_file_path)
     
-    def accept_eula_if_able(self):
+    def accept_eula_if_able(self) -> bool:
         if self.instance_state == FoundryState.LICENSE_EULA:
             if self.eula_accepted:
                 with requests.Session() as session:
@@ -319,7 +330,7 @@ class FoundryInstance(models.Model):
                 print("Cannot accept EULA automatically :(")
         return False
     
-    def assign_license_if_able(self):
+    def assign_license_if_able(self) -> bool:
         try:
             if self.foundry_license:
                 return True
@@ -334,7 +345,7 @@ class FoundryInstance(models.Model):
         return False
 
     @property
-    def worlds(self):
+    def worlds(self) -> typing.List[dict]:
         active_world_id = self.active_world_id
         worlds_path = os.path.join(self.data_path, "Data", "worlds")
         all_worlds = []
@@ -353,17 +364,17 @@ class FoundryInstance(models.Model):
                             all_worlds.append(world_dict)
         return all_worlds
     
-    def activate(self):
+    def activate(self) -> bool:
         return RefractoryServer.get_server().add_foundry_instance(self)
     
     def deactivate(self):
         RefractoryServer.get_server().remove_foundry_instance(self)
     
     @classmethod
-    def active_instances(cls):
+    def active_instances(cls) -> cls:
         return cls.objects.filter(instance_name__in=RefractoryServer.get_server().get_active_instance_names())
 
-    def vtt_login(self, foundry_user):
+    def vtt_login(self, foundry_user) -> typing.Tuple[str|None, dict|None]:
         with requests.Session() as session:
             return self.vtt_session_login(foundry_user, session)
 
@@ -387,11 +398,11 @@ class FoundryInstance(models.Model):
         else:
             return None, None
     
-    def admin_login(self):
+    def admin_login(self) -> typing.Tuple[str|None, dict|None]:
         with requests.Session() as session:
             return self.admin_session_login(session)
 
-    def admin_session_login(self, session):
+    def admin_session_login(self, session) -> typing.Tuple[str|None, dict|None]:
         login_url = f"{self.server_facing_base_url}/auth" if self.version_tuple[0] > 8 else f"{self.server_facing_base_url}/setup"
         session.get(login_url)
         admin_pass = self.admin_pass
@@ -418,7 +429,7 @@ class FoundryInstance(models.Model):
                 except Exception as ex:
                     time.sleep(0.1)
 
-    def activate_license(self):
+    def activate_license(self) -> bool:
         with requests.Session() as session:
             license_url = f"{self.server_facing_base_url}/license"
             session.get(
@@ -446,23 +457,23 @@ class FoundryInstance(models.Model):
         return False
 
     @property
-    def active_player_range(self):
+    def active_player_range(self) -> range:
         return range(self.active_player_count)
 
     @property
-    def active_player_count(self):
+    def active_player_count(self) -> int:
         join_info = self.get_join_info()
         return len(join_info.get("activeUsers", []))
 
-    def has_active_players(self):
+    def has_active_players(self) -> bool:
         return self.active_player_count > 0
 
     @property
-    def active_world_id(self):
+    def active_world_id(self) -> str:
         return self.get_join_info().get("world",{}).get("id")
 
     @property
-    def active_background_url(self):
+    def active_background_url(self) -> str:
         join_info = self.get_join_info()
         join_bg = join_info.get("world",{}).get("background")
         if not join_bg:
@@ -474,14 +485,14 @@ class FoundryInstance(models.Model):
             return static_url("refractory/img/ActiveWorld.png")
     
     @property
-    def default_background_url(self):
+    def default_background_url(self) -> str:
         return static_url("refractory/img/InactiveWorld.png")
     
     @property
-    def version_tuple(self):
+    def version_tuple(self) -> typing.Tuple:
         return tuple([int(part) for part in self.foundry_version.version_string.split(".")])
 
-    def get_join_info(self, sync=False):
+    def get_join_info(self, sync=False) -> dict:
         if self.instance_state == FoundryState.JOIN:
             try:
                 if self.version_tuple[0] > 8:
@@ -496,7 +507,7 @@ class FoundryInstance(models.Model):
                 pass
         return {}
     
-    def open_socketio_connection(self, session=None, log_internals=False):
+    def open_socketio_connection(self, session=None, log_internals=False) -> socketio.SimpleClient|None:
         base_url = self.server_facing_base_url
         login_url = f"{base_url}/join"
         if base_url:
@@ -517,7 +528,7 @@ class FoundryInstance(models.Model):
                 return sio
         return None
 
-    def get_ws_response(self, initial_event_type, initial_event_data=None, session=None):
+    def get_ws_response(self, initial_event_type, initial_event_data=None, session=None) -> dict:
         sio = self.open_socketio_connection(session=session)
         if sio:
             with sio:
@@ -528,7 +539,7 @@ class FoundryInstance(models.Model):
                 return event
         return {}
 
-    def get_setup_info(self):
+    def get_setup_info(self) -> dict:
         try:
             setup_info = self.get_ws_response("getSetupData")
             if setup_info:
@@ -561,14 +572,14 @@ class FoundryVersion(models.Model):
     download_status = models.CharField(max_length=15, choices=DownloadStatus.choices, default=DownloadStatus.NOT_DOWNLOADED)
     
     @property
-    def executable_path(self):
+    def executable_path(self) -> str:
         return os.path.join(RELEASE_PATH_BASE, self.version_string, "resources", "app", "main.js")
     
     @property
-    def downloaded(self):
+    def downloaded(self) -> FoundryVersion.DownloadStatus:
         return self.download_status == FoundryVersion.DownloadStatus.DOWNLOADED
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.version_string
     
     @classmethod
@@ -587,6 +598,7 @@ class FoundryVersion(models.Model):
                 if not qset.filter(version_string=version_string).exists():
                     cls(version_string=version_string, update_type=update_type, update_category=update_category).save()
 
+# regular expression and validator for foundry licenses
 FOUNDRY_LICENSE_REGEX = "^[A-Z1-9]{4}-[A-Z1-9]{4}-[A-Z1-9]{4}-[A-Z1-9]{4}-[A-Z1-9]{4}-[A-Z1-9]{4}$"
 foundry_license_validator = RegexValidator(FOUNDRY_LICENSE_REGEX, _("Foundry Licenses are of format XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"))
 
@@ -602,7 +614,7 @@ class FoundryLicense(models.Model):
     )
     
     @classmethod
-    def find_free_if_available(cls):
+    def find_free_if_available(cls) -> typing.Tuple[FoundryLicense|None, FoundryInstance|None]:
         active_instance_names = RefractoryServer.get_server().get_active_instance_names()
         free_licenses = cls.objects.exclude(instance__instance_name__in=active_instance_names)
         if free_licenses.exists():
@@ -638,7 +650,7 @@ class ManagedFoundryUser(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     managed_gm = models.BooleanField(default=False)
     
-    def get_create_message(self):
+    def get_create_message(self) -> typing.Tuple[str, dict]:
         message_data = {
             "type": "User",
             "action": "create",

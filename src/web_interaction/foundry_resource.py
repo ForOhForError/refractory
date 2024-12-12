@@ -93,9 +93,36 @@ def build_websocket_reverse_proxy_protocol(addr, host, port, override_server_pay
                 self.client_instance.sendClose(code=1000,reason=reason)
     return WebsocketReverseProxyServerProtocol
 
+
+class OverrideProxyClient(proxy.ProxyClient):
+    _finished = False
+
+    def __init__(self, command, rest, version, headers, data, father):
+        super().__init__(command, rest, version, headers, data, father)
+
+    def handleResponseEnd(self):
+        if not self._finished:
+            self._finished = True
+            try:
+                self.father.finish()
+            except RuntimeError:
+                print("supressed error successfully! yay!")
+            self.transport.loseConnection()
+
+class OverrideProxyClientFactory(proxy.ProxyClientFactory):
+    """
+    Used by ProxyRequest to implement a simple web proxy.
+    """
+
+    def __init__(self, command, rest, version, headers, data, father):
+        super().__init__(command, rest, version, headers, data, father)
+        self.protocol = OverrideProxyClient
+
 class SocketIOReverseProxy(proxy.ReverseProxyResource):
+    
     def __init__(self, host, port, path):
         proxy.ReverseProxyResource.__init__(self, host, port, path)
+        self.proxyClientFactoryClass = OverrideProxyClientFactory
         self.host = host
         self.port = port
         self.path = path
