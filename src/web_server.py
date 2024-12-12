@@ -1,34 +1,33 @@
-from twisted.internet import reactor
-from twisted.web.resource import Resource
-from twisted.web.wsgi import WSGIResource
-from twisted.web.server import Site
-
-import web_interaction.foundry_resource
-from urllib.parse import quote_plus
-
-import sys
 import os
 import os.path
-
-from django.urls import set_script_prefix
-from twisted.web.util import redirectTo
-from twisted.web.server import NOT_DONE_YET
+import sys
+from urllib.parse import quote_plus
 
 from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
-from django.urls import reverse
-from web_interaction.foundry_resource import INSTANCE_PATH
+from django.urls import reverse, set_script_prefix
+from twisted.internet import reactor
+from twisted.web.resource import Resource
+from twisted.web.server import NOT_DONE_YET, Site
+from twisted.web.util import redirectTo
+from twisted.web.wsgi import WSGIResource
+
+import web_interaction.foundry_resource
 from refractory_settings import MANAGEMENT_PATH
+from web_interaction.foundry_resource import INSTANCE_PATH
 
 MIN_INTERNAL_PORT = 30000
 _MODULE = sys.modules[__name__]
 
+
 class HomeResource(Resource):
     isLeaf = True
+
     def render(self, request):
-        redirect_addr = reverse('panel')
+        redirect_addr = reverse("panel")
         request.redirect(redirect_addr.encode())
         request.finish()
         return NOT_DONE_YET
+
 
 class RefractoryServer:
     def __init__(self):
@@ -37,9 +36,13 @@ class RefractoryServer:
         self.refractory_root_res = Resource()
         self.refractory_instances_res = Resource()
         self.site = Site(self.refractory_root_res)
-        self.django_res= WSGIResource(reactor, reactor.getThreadPool(), get_django_wsgi_application())
+        self.django_res = WSGIResource(
+            reactor, reactor.getThreadPool(), get_django_wsgi_application()
+        )
         self.refractory_root_res.putChild(MANAGEMENT_PATH.encode(), self.django_res)
-        self.refractory_root_res.putChild(INSTANCE_PATH.encode(), self.refractory_instances_res)
+        self.refractory_root_res.putChild(
+            INSTANCE_PATH.encode(), self.refractory_instances_res
+        )
         self.refractory_instances_res.putChild(b"", HomeResource())
         self.refractory_root_res.putChild(b"", HomeResource())
 
@@ -47,8 +50,8 @@ class RefractoryServer:
         if not len(self.foundry_resources):
             return MIN_INTERNAL_PORT
         assigned_ports = [instance.port for instance in self.foundry_resources.values()]
-        for port in range(MIN_INTERNAL_PORT, max(assigned_ports)+2):
-            if port not in assigned_ports: 
+        for port in range(MIN_INTERNAL_PORT, max(assigned_ports) + 2):
+            if port not in assigned_ports:
                 return port
         print("port assignment failed")
 
@@ -70,7 +73,9 @@ class RefractoryServer:
             self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
             self.foundry_resources[foundry_instance.instance_name] = foundry_res
             foundry_instance.post_activate()
-            print(f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}")
+            print(
+                f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}"
+            )
             return True
         return False
 
@@ -81,7 +86,9 @@ class RefractoryServer:
         if foundry_instance.instance_name in self.foundry_resources:
             res = self.foundry_resources.pop(foundry_instance.instance_name)
             res.end_process()
-            print(f"stopped {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}")
+            print(
+                f"stopped {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}"
+            )
 
     def get_foundry_resource(self, foundry_instance):
         return self.foundry_resources.get(foundry_instance.instance_name, None)

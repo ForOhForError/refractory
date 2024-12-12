@@ -1,11 +1,8 @@
 import html.parser
-
+import re
+import typing
 from collections import OrderedDict
 from html import unescape
-
-import re
-
-import typing
 
 """
 Everything in here is a bodge. Oh well.
@@ -16,11 +13,26 @@ DOUBLE_BRACE_SIMPLE_MATCH = re.compile(r"{{2,2}.*?}{2,2}")
 REPLACEMENT_STRING = "A_VERY_LONG_STRING_USED_TO_REPLACE_DOUBLE_BRACES".lower()
 
 VOID_ELEMENTS = [
-    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "source",
+    "track",
+    "wbr",
 ]
 
+
 class Element:
-    def __init__(self, tag=None, attrs=None, data=None, parent=None, end=False, start_end=False):
+    def __init__(
+        self, tag=None, attrs=None, data=None, parent=None, end=False, start_end=False
+    ):
         self.tag = tag
         self.attrs = attrs if attrs else OrderedDict()
         self.data = data
@@ -46,9 +58,11 @@ class Element:
         construct = ""
         for entry in self.attrs.items():
             key, value = entry
-            add_space = len(construct) > 0 and not(key.startswith("/"))
+            add_space = len(construct) > 0 and not (key.startswith("/"))
             construct += f'{" " if add_space else ""}'
-            construct += f'{key}="{self.attrs[key]}"' if self.attrs[key]!=None else key
+            construct += (
+                f'{key}="{self.attrs[key]}"' if self.attrs[key] != None else key
+            )
         return construct
 
     def __str__(self):
@@ -67,18 +81,36 @@ class Element:
         if self.ending_tag:
             recon += self.ending_tag.reconstruct()
         return recon
-    
-    def search(self, tag:str, attr:typing.Dict[str,str], results:typing.List["Element"]=None, limit_matches=-1, limit_depth=None, _level=0):
+
+    def search(
+        self,
+        tag: str,
+        attr: typing.Dict[str, str],
+        results: typing.List["Element"] = None,
+        limit_matches=-1,
+        limit_depth=None,
+        _level=0,
+    ):
         if results == None:
             results = []
         if limit_depth and _level > limit_depth:
             return results
-        if self.tag == tag and all([key in self.attrs and attr[key] in self.attrs[key] for key in attr]):
+        if self.tag == tag and all(
+            [key in self.attrs and attr[key] in self.attrs[key] for key in attr]
+        ):
             if limit_matches < 0 or len(results) < limit_matches:
                 results.append(self)
         for ele in self.children:
-            ele.search(tag, attr, results=results, limit_matches=limit_matches, limit_depth=limit_depth, _level=_level+1)
+            ele.search(
+                tag,
+                attr,
+                results=results,
+                limit_matches=limit_matches,
+                limit_depth=limit_depth,
+                _level=_level + 1,
+            )
         return results
+
 
 class TemplateOverwriter(html.parser.HTMLParser):
     def __init__(self, *, subject="", convert_charrefs=False):
@@ -89,7 +121,12 @@ class TemplateOverwriter(html.parser.HTMLParser):
         self.replacements += findings
         replaced = in_string
         for i in range(len(findings)):
-            replaced = re.sub(DOUBLE_BRACE_SIMPLE_MATCH, f"{REPLACEMENT_STRING}_{i}_", replaced, count=1)
+            replaced = re.sub(
+                DOUBLE_BRACE_SIMPLE_MATCH,
+                f"{REPLACEMENT_STRING}_{i}_",
+                replaced,
+                count=1,
+            )
         super().feed(replaced)
 
     def reset(self):
@@ -97,12 +134,14 @@ class TemplateOverwriter(html.parser.HTMLParser):
         self.current = self.root
         self.replacements = []
         super().reset()
-    
+
     @property
     def reconstructed(self):
         output = self.root.reconstruct()
         for i in range(len(self.replacements)):
-            output = output.replace(f"{REPLACEMENT_STRING}_{i}_", self.replacements[i], 1)
+            output = output.replace(
+                f"{REPLACEMENT_STRING}_{i}_", self.replacements[i], 1
+            )
         return output
 
     def fix_handlebar_attrs(self, attrs, attr_ranges=[]):
@@ -111,8 +150,8 @@ class TemplateOverwriter(html.parser.HTMLParser):
         for ix in range(len(attrs)):
             key, value = attrs[ix]
             start, _ = attr_ranges[ix]
-            if start > 0 and text[start-1] != " ": #fix keys starting with /
-                key = text[start-1]+key
+            if start > 0 and text[start - 1] != " ":  # fix keys starting with /
+                key = text[start - 1] + key
             new_attrs[key] = value
         return new_attrs
 
@@ -154,7 +193,7 @@ class TemplateOverwriter(html.parser.HTMLParser):
 
     def unknown_decl(self, data):
         self.current.put_child(Element(data=data))
-    
+
     # slightly modified from python source, to pass attribute index ranges
     def parse_starttag(self, i):
         self._HTMLParser__starttag_text = None
@@ -167,8 +206,8 @@ class TemplateOverwriter(html.parser.HTMLParser):
         # Now parse the data between i+1 and j into a tag and attrs
         attrs = []
         attr_ranges = []
-        match = html.parser.tagfind_tolerant.match(rawdata, i+1)
-        assert match, 'unexpected call to parse_starttag()'
+        match = html.parser.tagfind_tolerant.match(rawdata, i + 1)
+        assert match, "unexpected call to parse_starttag()"
         k = match.end()
         self.lasttag = tag = match.group(1).lower()
         while k < endpos:
@@ -178,20 +217,22 @@ class TemplateOverwriter(html.parser.HTMLParser):
             attrname, rest, attrvalue = m.group(1, 2, 3)
             if not rest:
                 attrvalue = None
-            elif attrvalue[:1] == '\'' == attrvalue[-1:] or \
-                 attrvalue[:1] == '"' == attrvalue[-1:]:
+            elif (
+                attrvalue[:1] == "'" == attrvalue[-1:]
+                or attrvalue[:1] == '"' == attrvalue[-1:]
+            ):
                 attrvalue = attrvalue[1:-1]
             if attrvalue:
                 attrvalue = unescape(attrvalue)
             attrs.append((attrname.lower(), attrvalue))
-            attr_ranges.append((m.start()-i, m.end()-i))
+            attr_ranges.append((m.start() - i, m.end() - i))
             k = m.end()
 
         end = rawdata[k:endpos].strip()
         if end not in (">", "/>"):
             self.handle_data(rawdata[i:endpos])
             return endpos
-        if end.endswith('/>'):
+        if end.endswith("/>"):
             # XHTML-style empty tag: <span attr="value" />
             self.handle_startendtag(tag, attrs, attr_ranges=attr_ranges)
         else:

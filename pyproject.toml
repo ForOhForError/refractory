@@ -13,9 +13,14 @@ autobahn = {extras = ["twisted"], version = "^23.6.2"}
 websockets = "^11.0.3"
 django = "^5.0.1"
 python-socketio = {extras = ["client"], version = "^5.11.4"}
-
-[tool.poetry.group.dev.dependencies]
 beautifulsoup4 = "^4.12.2"
+
+[tool.poetry.group.lint.dependencies]
+black = "^24.10.0"
+isort = "^5.13.2"
+
+[tool.isort]
+profile = "black"
 
 [build-system]
 requires = ["poetry-core"]
