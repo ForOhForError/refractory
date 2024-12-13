@@ -142,8 +142,11 @@ class FoundryLoginFormView(FormView, UserPassesTestMixin):
     def get_context_data(self, **kwargs):
         """Use this to add extra context."""
         context = super().get_context_data(**kwargs)
-        foundry_user = self.request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE)
-        context["foundry_user"] = foundry_user
+        try:
+            foundry_user = self.request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE)
+            context["foundry_user"] = foundry_user
+        except KeyError:
+            pass
         return context
 
     def test_func(self):
