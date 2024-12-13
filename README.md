@@ -25,13 +25,17 @@ Initial Release
 - [ ] User Management and Corresponding Pages
 
 Nice-to-haves
-- [ ] Standard User Features - Password change forgot password
+- [ ] Standard User Features - Password change, forgot password
 - [ ] Barebones non-managed mode
+- [ ] In-depth desync protection (prevent user passwords from being changed, etc)
+- [ ] "Naughty" niceness mode, for injecting new users into imported worlds.
 - [ ] Discord auth?
 
-## Projects used
+## Open-Source Projects Pulled into Source
 
-[Foundry Portal](https://github.com/Daxiongmao87/foundry-portal)
-[leveldb.py](https://github.com/jtolio/leveldb-py)
+The following projects have been pulled into this project's source.
 
-(Project licenses are included in the `licenses/` directory)
+ - [Foundry Portal](https://github.com/Daxiongmao87/foundry-portal) - Heavily modified to be used as html/css templates.
+ - [leveldb.py](https://github.com/jtolio/leveldb-py) - Manipulation of leveldb databases - currently unused.
+
+(Full project licenses are included in the `licenses/` directory)
