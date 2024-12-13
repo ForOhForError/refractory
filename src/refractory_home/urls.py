@@ -64,29 +64,21 @@ urlpatterns = [
         activate_world,
         name="activate_world",
     ),
-    path(
-        "instances/",
-        InstanceListView.as_view(),
-        name="instance_list"
-    ),
+    path("instances/", InstanceListView.as_view(), name="instance_list"),
     path(
         "instances/<slug:instance_slug>/",
         InstanceUpdateView.as_view(),
-        name="instance_update"
+        name="instance_update",
     ),
     path(
         "instances/<slug:instance_slug>/delete/",
         InstanceDeleteView.as_view(),
-        name="instance_delete"
+        name="instance_delete",
     ),
-    path(
-        "create-instance/",
-        InstanceCreateView.as_view(),
-        name="instance_create"
-    ),
+    path("create-instance/", InstanceCreateView.as_view(), name="instance_create"),
     path(
         "instances/<slug:instance_slug>/download-backup/",
         download_instance_backup,
-        name="instance_download_backup"
+        name="instance_download_backup",
     ),
 ]

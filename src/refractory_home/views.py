@@ -1,7 +1,8 @@
-from io import BytesIO
 import os
 import zipfile
+from io import BytesIO
 from pathlib import Path
+from wsgiref.util import FileWrapper
 
 from django import forms
 from django.contrib import messages
@@ -16,17 +17,27 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DeleteView, DetailView, UpdateView, ListView, TemplateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 from django.views.generic.edit import FormView
-from wsgiref.util import FileWrapper
 
 from refractory_home.models import (
-    FoundryInstance, FoundryState, FoundryVersion, ManagedFoundryUser
+    FoundryInstance,
+    FoundryState,
+    FoundryVersion,
+    ManagedFoundryUser,
 )
 from web_interaction.foundry_interaction import (
     FOUNDRY_USERNAME_COOKIE,
     foundry_site_login,
 )
+
 
 class InstanceCreateView(CreateView):
     model = FoundryInstance
@@ -47,6 +58,7 @@ class InstanceCreateView(CreateView):
             download_status=FoundryVersion.DownloadStatus.DOWNLOADED
         )
         return form
+
 
 class InstanceUpdateView(UpdateView):
     model = FoundryInstance
@@ -69,6 +81,7 @@ class InstanceUpdateView(UpdateView):
         )
         return form
 
+
 class InstanceDeleteView(DeleteView):
     model = FoundryInstance
     template_name = "instance_update.html"
@@ -83,11 +96,12 @@ class InstanceDeleteView(DeleteView):
         context["submit_text"] = _("Delete")
         return context
 
+
 class InstanceListView(ListView):
     model = FoundryInstance
     paginate_by = 20
     template_name = "instance_list.html"
-    ordering = ['foundry_version']
+    ordering = ["foundry_version"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -144,6 +158,7 @@ class FoundryLoginFormView(FormView, UserPassesTestMixin):
         foundry_site_login(username, password, resp)
         return resp
 
+
 @login_required
 @staff_member_required
 @require_POST
@@ -161,14 +176,19 @@ def download_instance_backup(request, instance_slug):
                     if whitelist_path in Path(file_path).parents:
                         archive.write(file_path, os.path.relpath(file_path))
             archive.close()
-            resp = HttpResponse(buf.getvalue(), content_type = "application/x-zip-compressed")
-            resp['Content-Disposition'] = 'attachment; filename=refractory_backup_%s.zip' % instance_slug
+            resp = HttpResponse(
+                buf.getvalue(), content_type="application/x-zip-compressed"
+            )
+            resp["Content-Disposition"] = (
+                "attachment; filename=refractory_backup_%s.zip" % instance_slug
+            )
             return resp
     except FoundryInstance.DoesNotExist:
         messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))
     messages.error(request, _("Download failed."))
     return redirect(reverse("panel"))
+
 
 @login_required
 def login_to_instance(request, instance_slug):
