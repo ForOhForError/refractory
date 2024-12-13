@@ -1,3 +1,8 @@
+from io import BytesIO
+import os
+import zipfile
+from pathlib import Path
+
 from django import forms
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -5,32 +10,84 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
-from django.views.generic import DetailView, ListView, TemplateView
+from django.views.generic import CreateView, DeleteView, DetailView, UpdateView, ListView, TemplateView
 from django.views.generic.edit import FormView
+from wsgiref.util import FileWrapper
 
-from refractory_home.models import FoundryInstance, FoundryState, ManagedFoundryUser
+from refractory_home.models import (
+    FoundryInstance, FoundryState, FoundryVersion, ManagedFoundryUser
+)
 from web_interaction.foundry_interaction import (
     FOUNDRY_USERNAME_COOKIE,
     foundry_site_login,
 )
 
-
-class InstanceDetailView(DetailView):
+class InstanceCreateView(CreateView):
     model = FoundryInstance
+    fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
+    template_name = "instance_update.html"
+    success_url = reverse_lazy("instance_list")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["now"] = timezone.now()
+        context["header_text"] = _("Create Foundry Instance")
+        context["submit_text"] = _("Create")
         return context
 
+    def get_form(self):
+        form = super().get_form()
+        form.fields["foundry_version"].queryset = FoundryVersion.objects.filter(
+            download_status=FoundryVersion.DownloadStatus.DOWNLOADED
+        )
+        return form
+
+class InstanceUpdateView(UpdateView):
+    model = FoundryInstance
+    fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
+    template_name = "instance_update.html"
+    slug_field = "instance_slug"
+    slug_url_kwarg = "instance_slug"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Update Foundry Instance")
+        context["submit_text"] = _("Update")
+        return context
+
+    def get_form(self):
+        form = super().get_form()
+        form.fields["foundry_version"].queryset = FoundryVersion.objects.filter(
+            download_status=FoundryVersion.DownloadStatus.DOWNLOADED
+        )
+        return form
+
+class InstanceDeleteView(DeleteView):
+    model = FoundryInstance
+    template_name = "instance_update.html"
+    slug_field = "instance_slug"
+    slug_url_kwarg = "instance_slug"
+    success_url = reverse_lazy("instance_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Delete Foundry Instance")
+        context["submit_text"] = _("Delete")
+        return context
 
 class InstanceListView(ListView):
     model = FoundryInstance
-    paginate_by = 5
+    paginate_by = 20
+    template_name = "instance_list.html"
+    ordering = ['foundry_version']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -87,6 +144,31 @@ class FoundryLoginFormView(FormView, UserPassesTestMixin):
         foundry_site_login(username, password, resp)
         return resp
 
+@login_required
+@staff_member_required
+@require_POST
+def download_instance_backup(request, instance_slug):
+    try:
+        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+        buf = BytesIO()
+
+        archive = zipfile.ZipFile(buf, "w")
+        with buf:
+            whitelist_path = Path(os.path.join(instance.data_path, "Data"))
+            for root, dirs, files in os.walk(instance.data_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    if whitelist_path in Path(file_path).parents:
+                        archive.write(file_path, os.path.relpath(file_path))
+            archive.close()
+            resp = HttpResponse(buf.getvalue(), content_type = "application/x-zip-compressed")
+            resp['Content-Disposition'] = 'attachment; filename=refractory_backup_%s.zip' % instance_slug
+            return resp
+    except FoundryInstance.DoesNotExist:
+        messages.error(request, _("Instance does not exist."))
+        return redirect(reverse("panel"))
+    messages.error(request, _("Download failed."))
+    return redirect(reverse("panel"))
 
 @login_required
 def login_to_instance(request, instance_slug):

@@ -4,10 +4,15 @@ from django.urls import path
 
 from .views import (
     FoundryLoginFormView,
+    InstanceCreateView,
+    InstanceDeleteView,
+    InstanceListView,
+    InstanceUpdateView,
     PanelView,
     RefractoryLoginView,
     activate_instance,
     activate_world,
+    download_instance_backup,
     login_to_instance,
     login_to_instance_as_admin,
     login_to_instance_as_managed_gm,
@@ -30,33 +35,58 @@ urlpatterns = [
     ),
     path("panel/", PanelView.as_view(), name="panel"),
     path(
-        "instance/<slug:instance_slug>/vtt_login/",
+        "instances/<slug:instance_slug>/vtt_login/",
         login_to_instance,
         name="vtt_choose_user",
     ),
     path(
-        "instance/<slug:instance_slug>/vtt_login/<int:user_ix>/",
+        "instances/<slug:instance_slug>/vtt_login/<int:user_ix>/",
         login_to_instance_as_user,
         name="vtt_login",
     ),
     path(
-        "instance/<slug:instance_slug>/activate/",
+        "instances/<slug:instance_slug>/activate/",
         activate_instance,
         name="activate_instance",
     ),
     path(
-        "instance/<slug:instance_slug>/admin_login/",
+        "instances/<slug:instance_slug>/admin_login/",
         login_to_instance_as_admin,
         name="instance_admin_login",
     ),
     path(
-        "instance/<slug:instance_slug>/gm_login/",
+        "instances/<slug:instance_slug>/gm_login/",
         login_to_instance_as_managed_gm,
         name="managed_admin_login",
     ),
     path(
-        "instance/<slug:instance_slug>/activate/<slug:world_id>/",
+        "instances/<slug:instance_slug>/activate/<slug:world_id>/",
         activate_world,
         name="activate_world",
+    ),
+    path(
+        "instances/",
+        InstanceListView.as_view(),
+        name="instance_list"
+    ),
+    path(
+        "instances/<slug:instance_slug>/",
+        InstanceUpdateView.as_view(),
+        name="instance_update"
+    ),
+    path(
+        "instances/<slug:instance_slug>/delete/",
+        InstanceDeleteView.as_view(),
+        name="instance_delete"
+    ),
+    path(
+        "create-instance/",
+        InstanceCreateView.as_view(),
+        name="instance_create"
+    ),
+    path(
+        "instances/<slug:instance_slug>/download-backup/",
+        download_instance_backup,
+        name="instance_download_backup"
     ),
 ]
