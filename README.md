@@ -14,6 +14,21 @@ Any key not currently in use by an instance will be valid for movement between i
 Additionally, any key in use by an instance with no active players on it will be considered valid for movement between instances, 
 though that instance will be automatically shut down before the license is moved.
 
+## To-do
+
+Initial Release
+- [X] Core Reverse Proxy and Login Management
+- [ ] License Management and Corresponding Pages
+- [ ] Version/Release Management and Corresponding Pages
+- [ ] Instance Management and Corresponding Pages
+- [ ] Invite Management and Corresponding Pages
+- [ ] User Management and Corresponding Pages
+
+Nice-to-haves
+- [ ] Standard User Features - Password change forgot password
+- [ ] Barebones non-managed mode
+- [ ] Discord auth?
+
 ## Projects used
 
 [Foundry Portal](https://github.com/Daxiongmao87/foundry-portal)
