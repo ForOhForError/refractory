@@ -39,7 +39,12 @@ from web_interaction.foundry_interaction import (
 )
 
 
-class InstanceCreateView(CreateView):
+class SuperuserRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_superuser
+
+
+class InstanceCreateView(SuperuserRequiredMixin, CreateView):
     model = FoundryInstance
     fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
     template_name = "instance_update.html"
@@ -60,7 +65,7 @@ class InstanceCreateView(CreateView):
         return form
 
 
-class InstanceUpdateView(UpdateView):
+class InstanceUpdateView(SuperuserRequiredMixin, UpdateView):
     model = FoundryInstance
     fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
     template_name = "instance_update.html"
@@ -82,7 +87,7 @@ class InstanceUpdateView(UpdateView):
         return form
 
 
-class InstanceDeleteView(DeleteView):
+class InstanceDeleteView(SuperuserRequiredMixin, DeleteView):
     model = FoundryInstance
     template_name = "instance_update.html"
     slug_field = "instance_slug"
@@ -97,7 +102,7 @@ class InstanceDeleteView(DeleteView):
         return context
 
 
-class InstanceListView(ListView):
+class InstanceListView(SuperuserRequiredMixin, ListView):
     model = FoundryInstance
     paginate_by = 20
     template_name = "instance_list.html"
@@ -133,7 +138,7 @@ class FoundryLoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)
 
 
-class FoundryLoginFormView(FormView, UserPassesTestMixin):
+class FoundryLoginFormView(SuperuserRequiredMixin, FormView):
     template_name = "foundry_login.html"
     form_class = FoundryLoginForm
     success_url = reverse_lazy("admin:index")
@@ -148,9 +153,6 @@ class FoundryLoginFormView(FormView, UserPassesTestMixin):
         except KeyError:
             pass
         return context
-
-    def test_func(self):
-        return self.request.user.is_superuser
 
     def form_valid(self, form):
         # This method is called when valid form data has been POSTed.
