@@ -84,6 +84,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db" / "db.sqlite3",
+        "OPTIONS": {
+            "timeout": 60,  # in seconds; up from default of 5. bad fix to concurrency problems, but it should hold up for low traffic.
+        },
     }
 }
 
