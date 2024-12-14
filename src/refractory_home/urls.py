@@ -10,6 +10,7 @@ from .views import (
     InstanceUpdateView,
     PanelView,
     RefractoryLoginView,
+    VersionListView,
     activate_instance,
     activate_world,
     download_instance_backup,
@@ -80,5 +81,10 @@ urlpatterns = [
         "instances/<slug:instance_slug>/download-backup/",
         download_instance_backup,
         name="instance_download_backup",
+    ),
+    path(
+        "versions/",
+        VersionListView.as_view(),
+        name="version_list",
     ),
 ]

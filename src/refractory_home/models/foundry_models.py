@@ -595,6 +595,10 @@ class FoundryVersion(models.Model):
     )
 
     @property
+    def version_tuple(self):
+        return tuple([int(version) for version in self.version_string.split(".")])
+
+    @property
     def executable_path(self) -> str:
         return os.path.join(
             RELEASE_PATH_BASE, self.version_string, "resources", "app", "main.js"

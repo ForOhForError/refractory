@@ -44,6 +44,22 @@ class SuperuserRequiredMixin(UserPassesTestMixin):
         return self.request.user.is_superuser
 
 
+class VersionListView(SuperuserRequiredMixin, ListView):
+    model = FoundryVersion
+    paginate_by = 20
+    template_name = "version_list.html"
+    ordering = ["version_string"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        return context
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return list(reversed(sorted(qs, key=lambda n: (n.version_tuple))))
+
+
 class InstanceCreateView(SuperuserRequiredMixin, CreateView):
     model = FoundryInstance
     fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
