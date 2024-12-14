@@ -498,9 +498,7 @@ class FoundryInstance(models.Model):
 
     @property
     def version_tuple(self) -> typing.Tuple:
-        return tuple(
-            [int(part) for part in self.foundry_version.version_string.split(".")]
-        )
+        return self.foundry_version.version_tuple
 
     def get_join_info(self, sync=False) -> dict:
         if self.instance_state == FoundryState.JOIN:
