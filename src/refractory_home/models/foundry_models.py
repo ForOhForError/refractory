@@ -18,6 +18,7 @@ from django.db import models, transaction
 from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from django.templatetags.static import static as static_url
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from websockets.sync.client import connect
@@ -85,6 +86,9 @@ class FoundryInstance(models.Model):
 
     def __str__(self) -> str:
         return self.display_name if self.display_name else self.instance_name
+
+    def get_absolute_url(self):
+        return reverse("instance_update", kwargs={"instance_slug": self.instance_slug})
 
     @classmethod
     def synch_to_refractory_hosting(cls):
@@ -611,6 +615,9 @@ class FoundryVersion(models.Model):
 
     def __str__(self) -> str:
         return self.version_string
+
+    def download_version(self, foundry_session_id):
+        foundry_interaction.download_single_release(self, foundry_session_id)
 
     @classmethod
     def load_versions(cls, limit_refresh_seconds=0):

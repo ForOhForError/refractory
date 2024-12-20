@@ -104,18 +104,18 @@ def login(session, csrf_token, username, password):
     return None
 
 
-def download_linux_zip(
-    session, version_string, download_dir="foundry_releases_zip", platform="linux"
+def _download_linux_zip(
+    session, foundry_version, download_dir="foundry_releases_zip", platform="linux"
 ):
     download_url = f"{RELEASES_URL}/download"
     try:
         with session.get(
             download_url,
-            params={"version": version_string, "platform": platform},
+            params={"build": foundry_version.build, "platform": platform},
             stream=True,
         ) as download_res:
             download_res.raise_for_status()
-            filename = f"{version_string}.zip"
+            filename = f"{foundry_version.version_string}.zip"
             zip_file = os.path.join(download_dir, filename)
             os.makedirs(download_dir, exist_ok=True)
             with open(zip_file, "wb") as f:
@@ -125,6 +125,60 @@ def download_linux_zip(
     except Exception as ex:
         raise ex
         return False
+
+
+def _download_and_write_release(
+    session,
+    foundry_version,
+    output_path="foundry_releases",
+    download_dir="foundry_releases_zip",
+):
+    tok = get_token(session)
+    try:
+        filename = f"{foundry_version.version_string}.zip"
+        zip_file = os.path.join(download_dir, filename)
+        output_dir = os.path.join(output_path, foundry_version.version_string)
+        test_for_file = os.path.join(
+            output_path, foundry_version.version_string, "refractory"
+        )
+        if not os.path.exists(zip_file):
+            # raise Exception("doesn't exist")
+            success = _download_linux_zip(session, foundry_version)
+            if not success:
+                raise Exception("didn't download")
+                return False
+        if not os.path.exists(test_for_file):
+            log.msg("extracting")
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                zip_ref.extractall(output_dir)
+            with open(test_for_file, "w") as testfile:
+                testfile.write("refractory")
+        return True
+    except Exception as ex:
+        raise ex
+        return False
+    return False
+
+
+def download_single_release(foundry_version, foundry_session_id):
+    with requests.Session() as rsession:
+        rsession.cookies.update({"sessionid": foundry_session_id})
+        print(
+            f"downloading release {foundry_version.version_string} (build {foundry_version.build})"
+        )
+        foundry_version.download_status = foundry_version.DownloadStatus.DOWNLOADING
+        foundry_version.save()
+        success = False
+        try:
+            success = _download_and_write_release(rsession, foundry_version)
+        except Exception as ex:
+            print(f"Exception while downloading: {ex}")
+        foundry_version.download_status = (
+            foundry_version.DownloadStatus.DOWNLOADED
+            if success
+            else foundry_version.DownloadStatus.NOT_DOWNLOADED
+        )
+        foundry_version.save()
 
 
 def get_licenses(session, canon_username):
@@ -147,37 +201,3 @@ def get_licenses(session, canon_username):
             license_obj["license_name"] = ""
         parsed_licenses.append(license_obj)
     return parsed_licenses
-
-
-def download_and_write_release(
-    session,
-    version_string=None,
-    output_path="foundry_releases",
-    download_dir="foundry_releases_zip",
-):
-    tok = get_token(session)
-    if not version_string:
-        releases = get_releases(session)
-        version_string = releases[0].version
-    try:
-        filename = f"{version_string}.zip"
-        zip_file = os.path.join(download_dir, filename)
-        output_dir = os.path.join(output_path, version_string)
-        test_for_file = os.path.join(output_path, version_string, "refractory")
-        if not os.path.exists(zip_file):
-            # raise Exception("doesn't exist")
-            success = download_linux_zip(session, version_string)
-            if not success:
-                raise Exception("didn't download")
-                return False
-        if not os.path.exists(test_for_file):
-            log.msg("extracting")
-            with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(output_dir)
-            with open(test_for_file, "w") as testfile:
-                testfile.write("refractory")
-        return True
-    except Exception as ex:
-        raise ex
-        return False
-    return False

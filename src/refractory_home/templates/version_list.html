@@ -3,17 +3,42 @@
 
 {% block title %}FoundryVTT.com Login{% endblock %}
 
+{% block notifs %}
+    {% if messages %}
+    <ul class="refractory-messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="refractory-message {{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="panel thin-panel" id="login-panel">
     <div class="login-panel">
         <h2>FoundryVTT Releases</h2>
-        <ul>
-            {% for version in object_list %}
-                <li>Version {{ version.version_string }}</li>
-            {% empty %}
-                <li>{% translate "Couldn't fetch version list. Check your server's connection?" %}</li>
-            {% endfor %}
-        </ul>
+        {% for version in object_list %}
+            <div>
+                <p>Version {{ version.version_string }}</p>
+                {% if version.download_status == version.DownloadStatus.DOWNLOADED %}
+                <p>Ready</p>
+                {% elif version.download_status == version.DownloadStatus.DOWNLOADING %}
+                <p>Download in progress</p>
+                {% elif version.download_status == version.DownloadStatus.NOT_DOWNLOADED %}
+                <a
+                    {% if foundry_user %}
+                        href="{% url 'version_download' version.version_string %}"
+                    {% else %}
+                        href="{% url 'foundry_site_login' %}?next={% url 'version_list' %}"
+                    {% endif %}
+                >
+                    Download
+                </a>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p>{% translate "Couldn't fetch version list. Check your server's connection?" %}</p>
+        {% endfor %}
         <div class="pagination">
             <span class="step-links">
                 {% if page_obj.has_previous %}

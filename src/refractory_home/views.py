@@ -35,6 +35,7 @@ from refractory_home.models import (
 )
 from web_interaction.foundry_interaction import (
     FOUNDRY_USERNAME_COOKIE,
+    FOUNDRY_SESSION_COOKIE,
     foundry_site_login,
 )
 
@@ -44,7 +45,18 @@ class SuperuserRequiredMixin(UserPassesTestMixin):
         return self.request.user.is_superuser
 
 
-class VersionListView(SuperuserRequiredMixin, ListView):
+class FoundryVTTLoginContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            foundry_user = self.request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE)
+            context["foundry_user"] = foundry_user
+        except KeyError:
+            pass
+        return context
+
+
+class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListView):
     model = FoundryVersion
     paginate_by = 20
     template_name = "version_list.html"
@@ -64,7 +76,7 @@ class VersionListView(SuperuserRequiredMixin, ListView):
 class InstanceCreateView(SuperuserRequiredMixin, CreateView):
     model = FoundryInstance
     fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
-    template_name = "instance_update.html"
+    template_name = "instance_create.html"
     success_url = reverse_lazy("instance_list")
 
     def get_context_data(self, **kwargs):
@@ -155,21 +167,17 @@ class FoundryLoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)
 
 
-class FoundryLoginFormView(SuperuserRequiredMixin, FormView):
+class FoundryLoginFormView(
+    SuperuserRequiredMixin, FoundryVTTLoginContextMixin, FormView
+):
     template_name = "foundry_login.html"
     form_class = FoundryLoginForm
-    success_url = reverse_lazy("admin:index")
     redirect_authenticated_user = True
 
-    def get_context_data(self, **kwargs):
-        """Use this to add extra context."""
-        context = super().get_context_data(**kwargs)
-        try:
-            foundry_user = self.request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE)
-            context["foundry_user"] = foundry_user
-        except KeyError:
-            pass
-        return context
+    def get_success_url(self):
+        if "next" in self.request.GET:
+            return self.request.GET.get("next")
+        return reverse_lazy("panel")
 
     def form_valid(self, form):
         # This method is called when valid form data has been POSTed.
@@ -179,6 +187,27 @@ class FoundryLoginFormView(SuperuserRequiredMixin, FormView):
         password = form.cleaned_data["password"]
         foundry_site_login(username, password, resp)
         return resp
+
+
+@login_required
+@staff_member_required
+def download_version(request, version_string):
+    try:
+        print(version_string)
+        foundry_version = FoundryVersion.objects.get(version_string=version_string)
+        foundry_session_id = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE)
+        foundry_version.download_version(foundry_session_id)
+        messages.error(
+            request,
+            _("Downloaded Version %s (Build %s) successfully.")
+            % (foundry_version.version_string, foundry_version.build),
+        )
+    except FoundryVersion.DoesNotExist:
+        messages.error(request, _("Bad Version String"))
+    except Exception as ex:
+        raise ex
+        messages.error(request, _("Bad Request"))
+    return redirect(reverse("version_list"))
 
 
 @login_required

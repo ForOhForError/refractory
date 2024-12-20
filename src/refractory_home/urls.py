@@ -14,6 +14,7 @@ from .views import (
     activate_instance,
     activate_world,
     download_instance_backup,
+    download_version,
     login_to_instance,
     login_to_instance_as_admin,
     login_to_instance_as_managed_gm,
@@ -86,5 +87,10 @@ urlpatterns = [
         "versions/",
         VersionListView.as_view(),
         name="version_list",
+    ),
+    path(
+        "versions/download/<str:version_string>",
+        download_version,
+        name="version_download",
     ),
 ]
