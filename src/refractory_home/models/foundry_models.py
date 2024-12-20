@@ -580,6 +580,7 @@ class FoundryVersion(models.Model):
         DOWNLOADED = "Downloaded", _("Downloaded")
 
     version_string = models.CharField(max_length=30, unique=True)
+    build = models.IntegerField(default=0)
     update_type = models.CharField(
         max_length=10, choices=UpdateType.choices, default=UpdateType.FULL
     )

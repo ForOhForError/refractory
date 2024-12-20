@@ -34,13 +34,18 @@ def get_releases(session):
     for release in releases:
         release_link = release.find("a")
         version = release_link.getText().replace("Release ", "")
+        build_parts = release_link.get("href").replace("/releases/", "").split(".")
+        try:
+            build_no = int(build_parts[1]) if len(build_parts) > 1 else 0
+        except ValueError:
+            build_no = 0
         tags = [
             tag.getText()
             for tag in release.find_all("span", attrs={"class": "release-tag"})
         ]
         date = release.find("span", attrs={"class": "release-time"}).getText()
         date = datetime.strptime(date, "%B %d, %Y")
-        parsed_releases.append({"version": version, "tags": tags, "date": date})
+        parsed_releases.append({"version": version, "build": build_no, "tags": tags, "date": date})
     return parsed_releases
 
 
