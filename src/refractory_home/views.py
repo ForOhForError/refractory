@@ -56,6 +56,7 @@ class VersionListView(SuperuserRequiredMixin, ListView):
         return context
 
     def get_queryset(self):
+        FoundryVersion.load_versions(limit_refresh_seconds=60)
         qs = super().get_queryset()
         return list(reversed(sorted(qs, key=lambda n: (n.version_tuple))))
 

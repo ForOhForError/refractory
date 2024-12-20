@@ -27,25 +27,34 @@ POST_HEADERS = {
 
 
 def get_releases(session):
-    releases_page = session.get(RELEASES_URL)
-    releases_page_parse = BeautifulSoup(releases_page.text, features="html.parser")
-    releases = releases_page_parse.find_all("li", attrs={"class": "release"})
     parsed_releases = []
-    for release in releases:
-        release_link = release.find("a")
-        version = release_link.getText().replace("Release ", "")
-        build_parts = release_link.get("href").replace("/releases/", "").split(".")
-        try:
-            build_no = int(build_parts[1]) if len(build_parts) > 1 else 0
-        except ValueError:
-            build_no = 0
-        tags = [
-            tag.getText()
-            for tag in release.find_all("span", attrs={"class": "release-tag"})
-        ]
-        date = release.find("span", attrs={"class": "release-time"}).getText()
-        date = datetime.strptime(date, "%B %d, %Y")
-        parsed_releases.append({"version": version, "build": build_no, "tags": tags, "date": date})
+    try:
+        releases_page = session.get(RELEASES_URL)
+        releases_page.raise_for_status()
+        releases_page_parse = BeautifulSoup(releases_page.text, features="html.parser")
+        releases = releases_page_parse.find_all("li", attrs={"class": "release"})
+
+        for release in releases:
+            release_link = release.find("a")
+            version = release_link.getText().replace("Release ", "")
+            build_parts = release_link.get("href").replace("/releases/", "").split(".")
+            try:
+                build_no = int(build_parts[1]) if len(build_parts) > 1 else 0
+            except ValueError:
+                build_no = 0
+            tags = [
+                tag.getText()
+                for tag in release.find_all("span", attrs={"class": "release-tag"})
+            ]
+            date = release.find("span", attrs={"class": "release-time"}).getText()
+            date = datetime.strptime(date, "%B %d, %Y")
+            parsed_releases.append(
+                {"version": version, "build": build_no, "tags": tags, "date": date}
+            )
+    except requests.ConnectionError:
+        print("Couldn't fetch release page due to connection error")
+    except requests.HTTPError:
+        print("Couldn't fetch release page due to server error")
     return parsed_releases
 
 

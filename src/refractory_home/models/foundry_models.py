@@ -5,6 +5,7 @@ import secrets
 import shutil
 import time
 import typing
+from datetime import timedelta
 from enum import Enum
 
 import bs4.element
@@ -17,6 +18,7 @@ from django.db import models, transaction
 from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from django.templatetags.static import static as static_url
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from websockets.sync.client import connect
 
@@ -611,27 +613,39 @@ class FoundryVersion(models.Model):
         return self.version_string
 
     @classmethod
-    def load_versions(cls):
+    def load_versions(cls, limit_refresh_seconds=0):
+        if limit_refresh_seconds > 0:
+            now = timezone.now()
+            if hasattr(cls, "refresh_timestamp"):
+                old = getattr(cls, "refresh_timestamp")
+                if now - old <= timedelta(seconds=limit_refresh_seconds):
+                    return
+            cls.refresh_timestamp = now
+
         with requests.Session() as rsession:
             qset = cls.objects.all()
             versions = foundry_interaction.get_releases(rsession)
-            for release in versions:
-                version_string = release.get("version")
-                update_type, update_category = (
-                    cls.UpdateType.FULL,
-                    cls.UpdateCategory.STABLE,
-                )
-                for tag in release.get("tags"):
-                    if tag in cls.UpdateType:
-                        update_type = tag
-                    elif tag in cls.UpdateCategory:
-                        update_category = tag
-                if not qset.filter(version_string=version_string).exists():
-                    cls(
+            with transaction.atomic():
+                for release in versions:
+                    version_string = release.get("version")
+                    build = release.get("build")
+                    update_type, update_category = (
+                        cls.UpdateType.FULL,
+                        cls.UpdateCategory.STABLE,
+                    )
+                    for tag in release.get("tags"):
+                        if tag in cls.UpdateType:
+                            update_type = tag
+                        elif tag in cls.UpdateCategory:
+                            update_category = tag
+                    cls.objects.update_or_create(
                         version_string=version_string,
-                        update_type=update_type,
-                        update_category=update_category,
-                    ).save()
+                        defaults=dict(
+                            update_type=update_type,
+                            update_category=update_category,
+                            build=build,
+                        ),
+                    )
 
 
 # regular expression and validator for foundry licenses

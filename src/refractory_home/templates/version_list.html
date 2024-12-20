@@ -1,4 +1,5 @@
 {% extends '_foundry_portal_base.html' %}
+{% load i18n %}
 
 {% block title %}FoundryVTT.com Login{% endblock %}
 
@@ -10,7 +11,7 @@
             {% for version in object_list %}
                 <li>Version {{ version.version_string }}</li>
             {% empty %}
-                <li>No releases yet.</li>
+                <li>{% translate "Couldn't fetch version list. Check your server's connection?" %}</li>
             {% endfor %}
         </ul>
         <div class="pagination">
