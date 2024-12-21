@@ -1,0 +1,24 @@
+{% extends '_foundry_portal_base.html' %}
+{% load i18n %}
+
+{% block title %}FoundryVTT.com Login{% endblock %}
+
+{% block notifs %}
+    {% if messages %}
+    <ul class="refractory-messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="refractory-message {{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+{% endblock %}
+
+{% block content %}{% endblock %}
+{% block sidebar-content %}
+<section class="panel sidebar">
+    <h2>Management links</h2>
+    <div><a href="{% url "foundry_site_login" %}">{% translate "FoundryVTT Account Login" %}</a></div>
+    <div><a href="{% url "version_list" %}">{% translate "Versions" %}</a></div>
+    <div><a href="{% url "instance_list" %}">{% translate "Instances" %}</a></div>
+</section>
+{% endblock %}

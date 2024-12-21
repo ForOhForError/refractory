@@ -31,7 +31,7 @@ urlpatterns = [
     ),
     path("admin/login/", RefractoryLoginView.as_view(), name="override_admin_login"),
     path(
-        "admin/foundry_login/",
+        "foundry_login/",
         FoundryLoginFormView.as_view(),
         name="foundry_site_login",
     ),

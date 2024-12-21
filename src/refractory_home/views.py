@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, RedirectURLMixin
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -172,16 +172,17 @@ class FoundryLoginFormView(
 ):
     template_name = "foundry_login.html"
     form_class = FoundryLoginForm
-    redirect_authenticated_user = True
 
     def get_success_url(self):
-        if "next" in self.request.GET:
-            return self.request.GET.get("next")
-        return reverse_lazy("panel")
+        """Return the default redirect URL."""
+        next_page = self.request.GET.get("next")
+        print(self.request.GET)
+        if next_page:
+            return resolve_url(next_page)
+        else:
+            return reverse_lazy("panel")
 
     def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
-        # It should return an HttpResponse.
         resp = super().form_valid(form)
         username = form.cleaned_data["username"]
         password = form.cleaned_data["password"]
@@ -191,6 +192,7 @@ class FoundryLoginFormView(
 
 @login_required
 @staff_member_required
+@require_POST
 def download_version(request, version_string):
     try:
         print(version_string)

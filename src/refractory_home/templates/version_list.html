@@ -1,17 +1,7 @@
-{% extends '_foundry_portal_base.html' %}
+{% extends '_manage_base.html' %}
 {% load i18n %}
 
-{% block title %}FoundryVTT.com Login{% endblock %}
-
-{% block notifs %}
-    {% if messages %}
-    <ul class="refractory-messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="refractory-message {{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-{% endblock %}
+{% block title %}Refractory Version Management{% endblock %}
 
 {% block content %}
 <section class="panel thin-panel" id="login-panel">
@@ -25,15 +15,16 @@
                 {% elif version.download_status == version.DownloadStatus.DOWNLOADING %}
                 <p>Download in progress</p>
                 {% elif version.download_status == version.DownloadStatus.NOT_DOWNLOADED %}
-                <a
                     {% if foundry_user %}
-                        href="{% url 'version_download' version.version_string %}"
+                        <form action="{% url 'version_download' version.version_string %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit">Download</button>
+                        </form>
                     {% else %}
-                        href="{% url 'foundry_site_login' %}?next={% url 'version_list' %}"
+                        <form action="{% url 'foundry_site_login' %}?next={% url 'version_list' %}" method="get">
+                            <button type="submit">Download</button>
+                        </form>
                     {% endif %}
-                >
-                    Download
-                </a>
                 {% endif %}
             </div>
         {% empty %}

@@ -1,12 +1,12 @@
 {% extends '_foundry_portal_base.html' %}
 {% load i18n %}
 
-{% block title %}{{header_text}}{% endblock %}
+{% block title %}Create Refractory Instance{% endblock %}
 
 {% block content %}
 <section class="panel thin-panel" id="login-panel">
     <div class="login-panel">
-        <h2>{{header_text}}</h2>
+        <h2>Create Refractory Instance</h2>
         <form method="post">
             {% csrf_token %}
             {{ form.as_p }}

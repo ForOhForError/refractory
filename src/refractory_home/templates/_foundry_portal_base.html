@@ -23,7 +23,7 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>Refractory</h1>
+            <h1><a href="{% url 'panel' %}">Refractory<a></h1>
         </header>
         
         <!-- Navigation Menu -->
@@ -35,6 +35,14 @@
                         <p>Log out</p>
                     </button>
                 </form>
+                {% if user.is_staff %}
+                    <form class="inline-form" action="{% url 'instance_list' %}" method="get">
+                        {% csrf_token %}
+                        <button class="nav-link-text" type="submit">
+                            <p>Manage</p>
+                        </button>
+                    </form>
+                {% endif %}
             {% endif %}
             <form class="inline-form" action="https://foundryvtt.com/" method="get">
                 <button class="nav-link-icon" type="submit">
@@ -51,6 +59,7 @@
         <!-- Main Content -->
         <main class="main-content">
             {% block content %}{% endblock %}
+            {% block sidebar-content %}{% endblock %}
         </main>
         
         <!-- Footer -->
