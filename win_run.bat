@@ -1,6 +1,6 @@
 set DJANGO_SECRET="SECRETHERE"
-poetry install
+uv sync
 :loop
-poetry run python src/main.py
+uv run python src/main.py
 goto loop
 pause

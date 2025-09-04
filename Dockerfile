@@ -6,13 +6,13 @@ RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg -
 RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
 RUN apt-get update && \
     apt-get install -y nodejs libleveldb-dev && \
-    python3 -m pip install poetry
+    python3 -m pip install uv
 
-COPY poetry.lock /app/
+COPY uv.lock /app/
 COPY pyproject.toml /app/
 COPY manage.py /app/
 WORKDIR /app/
-RUN poetry install --no-root
+RUN uv sync
 COPY src/ /app/src/
 COPY static/foundryportal/ static/foundryportal/
 COPY static/refractory/ static/refractory/
