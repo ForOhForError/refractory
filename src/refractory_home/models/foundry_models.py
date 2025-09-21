@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import secrets
@@ -164,9 +165,10 @@ class FoundryInstance(models.Model):
                 ):
                     gamemaster_candidate_user = join_info.get("users", [{}])[0]
                     if gamemaster_candidate_user.get("role") == 4:
-                        user_id, user_name = gamemaster_candidate_user.get(
-                            "_id"
-                        ), gamemaster_candidate_user.get("name")
+                        user_id, user_name = (
+                            gamemaster_candidate_user.get("_id"),
+                            gamemaster_candidate_user.get("name"),
+                        )
                         gm = self.register_managed_gm(world_id, user_id, user_name)
             if gm:
                 with requests.Session() as session:
@@ -235,7 +237,7 @@ class FoundryInstance(models.Model):
                 return managed_gms.first()
         return None
 
-    def pre_activate(self, port) -> str:
+    def pre_activate(self, port) -> bool:
         self.inject_config(port=port, clear_admin_pass=True)
         self.clear_unmatched_license()
         return self.assign_license_if_able()
@@ -441,9 +443,11 @@ class FoundryInstance(models.Model):
             while True:
                 try:
                     base_url = f"{self.server_facing_base_url}/"
+                    logging.info(f"attempting connection to {base_url}")
                     res = session.get(base_url)
                     break
                 except Exception as ex:
+                    logging.info("time out")
                     time.sleep(0.1)
 
     def activate_license(self) -> bool:
@@ -534,7 +538,7 @@ class FoundryInstance(models.Model):
                 session.get(login_url)
                 session_id = session.cookies.get("session", None)
             if session_id:
-                connect_url = f"{base_url.replace('http','ws')}?session={session_id}"
+                connect_url = f"{base_url.replace('http', 'ws')}?session={session_id}"
                 sio = socketio.SimpleClient(
                     logger=log_internals, engineio_logger=log_internals
                 )
@@ -754,3 +758,18 @@ class ManagedFoundryUser(models.Model):
             },
         }
         return "modifyDocument", message_data
+
+def generate_random_slug() -> str:
+    return secrets.token_urlsafe(32)
+
+class FoundryInvite(models.Model):
+    invite_code = models.CharField(
+        max_length=64, null=False, default=generate_random_slug, validators=[validate_unicode_slug], unique=True
+    )
+    uses = models.PositiveSmallIntegerField(default=1, null=False)
+    
+    def use_invite(self):
+        if self.uses != 0:
+            self.uses -= 1
+            if self.uses == 0:
+                self.delete()

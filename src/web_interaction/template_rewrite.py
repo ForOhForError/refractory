@@ -53,7 +53,7 @@ def rewrite_element_with_template(
     django_template_name: str,
     *search_args,
     foundry_instance=None,
-    **search_kwargs
+    **search_kwargs,
 ) -> str:
     parse = TemplateOverwriter()
     parse.feed(input_body)
@@ -82,7 +82,7 @@ def make_login_rewrite_rule(*search_args, **search_kwargs):
             "injected_login_button.html",
             *search_args,
             foundry_instance=instance,
-            **search_kwargs
+            **search_kwargs,
         )
 
     return rewrite_rule
@@ -95,7 +95,7 @@ def make_setup_rewrite_rule(*search_args, **search_kwargs):
             "injected_login_button.html",
             *search_args,
             foundry_instance=instance,
-            **search_kwargs
+            **search_kwargs,
         )
 
     return rewrite_rule

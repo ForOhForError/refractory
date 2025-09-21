@@ -22,28 +22,28 @@
 #
 
 """
-    LevelDB Python interface via C-Types.
-    http://code.google.com/p/leveldb-py/
+LevelDB Python interface via C-Types.
+http://code.google.com/p/leveldb-py/
 
-    Missing still (but in progress):
-      * custom comparators, filter policies, caches
+Missing still (but in progress):
+  * custom comparators, filter policies, caches
 
-    This interface requires nothing more than the leveldb shared object with
-    the C api being installed.
+This interface requires nothing more than the leveldb shared object with
+the C api being installed.
 
-    Now requires LevelDB 1.6 or newer.
+Now requires LevelDB 1.6 or newer.
 
-    For most usages, you are likely to only be interested in the "DB" and maybe
-    the "WriteBatch" classes for construction. The other classes are helper
-    classes that you may end up using as part of those two root classes.
+For most usages, you are likely to only be interested in the "DB" and maybe
+the "WriteBatch" classes for construction. The other classes are helper
+classes that you may end up using as part of those two root classes.
 
-     * DBInterface - This class wraps a LevelDB. Created by either the DB or
-            MemoryDB constructors
-     * Iterator - this class is created by calls to DBInterface::iterator.
-            Supports range requests, seeking, prefix searching, etc
-     * WriteBatch - this class is a standalone object. You can perform writes
-            and deletes on it, but nothing happens to your database until you
-            write the writebatch to the database with DB::write
+ * DBInterface - This class wraps a LevelDB. Created by either the DB or
+        MemoryDB constructors
+ * Iterator - this class is created by calls to DBInterface::iterator.
+        Supports range requests, seeking, prefix searching, etc
+ * WriteBatch - this class is a standalone object. You can perform writes
+        and deletes on it, but nothing happens to your database until you
+        write the writebatch to the database with DB::write
 """
 
 __author__ = "JT Olds"
@@ -696,7 +696,6 @@ def MemoryDB(*_args, **kwargs):
 
 
 class _IteratorMemImpl(object):
-
     __slots__ = ["_data", "_idx"]
 
     def __init__(self, memdb_data):
@@ -733,7 +732,6 @@ class _IteratorMemImpl(object):
 
 
 class _MemoryDBImpl(object):
-
     __slots__ = ["_data", "_lock", "_is_snapshot"]
 
     def __init__(self, data=None, is_snapshot=False):
@@ -811,7 +809,6 @@ class _MemoryDBImpl(object):
 
 
 class _PointerRef(object):
-
     __slots__ = ["ref", "_close", "_referrers", "__weakref__"]
 
     def __init__(self, ref, close_cb):
@@ -845,7 +842,6 @@ def _checkError(error):
 
 
 class _IteratorDbImpl(object):
-
     __slots__ = ["_ref"]
 
     def __init__(self, iterator_ref):
@@ -948,7 +944,6 @@ def DB(
 
 
 class _LevelDBImpl(object):
-
     __slots__ = ["_objs", "_db", "_snapshot"]
 
     def __init__(self, db_ref, snapshot_ref=None, other_objects=()):

@@ -12,6 +12,10 @@
                 <p>Version {{ version.version_string }}</p>
                 {% if version.download_status == version.DownloadStatus.DOWNLOADED %}
                 <p>Ready</p>
+                <form action="{% url 'version_download' version.version_string %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit">Force Redownload</button>
+                </form>
                 {% elif version.download_status == version.DownloadStatus.DOWNLOADING %}
                 <p>Download in progress</p>
                 {% elif version.download_status == version.DownloadStatus.NOT_DOWNLOADED %}

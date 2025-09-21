@@ -8,6 +8,8 @@ from django import forms
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, RedirectURLMixin
 from django.core.exceptions import PermissionDenied
@@ -32,6 +34,7 @@ from refractory_home.models import (
     FoundryState,
     FoundryVersion,
     ManagedFoundryUser,
+    FoundryInvite,
 )
 from web_interaction.foundry_interaction import (
     FOUNDRY_USERNAME_COOKIE,
@@ -189,6 +192,39 @@ class FoundryLoginFormView(
         foundry_site_login(username, password, resp)
         return resp
 
+class InviteCodeUserCreationForm(UserCreationForm):
+    invite_code = forms.CharField(help_text='Invite Code')
+    
+    def clean_invite_code(self):
+        invite_code = self.cleaned_data.get("invite_code")
+        if invite_code:
+            try:
+                invite = FoundryInvite.objects.get(invite_code=invite_code)
+            except FoundryInvite.DoesNotExist:
+                raise forms.ValidationError(
+                    "Invite invalid"
+                )
+        else:
+            raise forms.ValidationError(
+                "Invite code required"
+            )
+        return invite_code
+    
+    def save(self, commit=True):
+        invite_code = self.cleaned_data.get("invite_code")
+        invite = FoundryInvite.objects.get(invite_code=invite_code)
+        invite.use_invite()
+        user = super(UserCreationForm, self).save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            user.save()
+        return user
+
+class SignupFormView(
+    CreateView
+):
+    template_name = "signup.html"
+    form_class = InviteCodeUserCreationForm
 
 @login_required
 @staff_member_required

@@ -6,7 +6,7 @@ from urllib.parse import quote_plus
 from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
 from django.urls import reverse, set_script_prefix
 from twisted.internet import reactor
-from twisted.web.resource import Resource
+from twisted.web.resource import Resource, IResource
 from twisted.web.server import NOT_DONE_YET, Site
 from twisted.web.util import redirectTo
 from twisted.web.wsgi import WSGIResource
@@ -64,19 +64,20 @@ class RefractoryServer:
 
     def add_foundry_instance(self, foundry_instance):
         port = self.get_unassigned_port()
-        instance_slug_bytes = foundry_instance.instance_slug.encode()
-        precheck = foundry_instance.pre_activate(port)
-        if precheck:
-            foundry_res = web_interaction.foundry_resource.FoundryResource(
-                foundry_instance, port=port, log=False
-            )
-            self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
-            self.foundry_resources[foundry_instance.instance_name] = foundry_res
-            foundry_instance.post_activate()
-            print(
-                f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}"
-            )
-            return True
+        if port:
+            instance_slug_bytes = foundry_instance.instance_slug.encode()
+            precheck = foundry_instance.pre_activate(port)
+            if precheck:
+                foundry_res = web_interaction.foundry_resource.FoundryResource(
+                    foundry_instance, port=port, log=False
+                )
+                self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
+                self.foundry_resources[foundry_instance.instance_name] = foundry_res
+                foundry_instance.post_activate()
+                print(
+                    f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}"
+                )
+                return True
         return False
 
     def remove_foundry_instance(self, foundry_instance):
@@ -100,7 +101,7 @@ class RefractoryServer:
     def get_server(cls):
         if not hasattr(_MODULE, "_server"):
             server = cls()
-            _MODULE._server = server
+            setattr(_MODULE, "_server", server)
             return server
         else:
             return _MODULE._server

@@ -12,6 +12,7 @@
             {% empty %}
                 <li>No instances yet.</li>
             {% endfor %}
+            <li><a href="{% url 'instance_create' %}">Create Instance</a></li>
         </ul>
         <div class="pagination">
             <span class="step-links">

@@ -19,6 +19,7 @@ from .views import (
     login_to_instance_as_admin,
     login_to_instance_as_managed_gm,
     login_to_instance_as_user,
+    SignupFormView,
 )
 
 urlpatterns = [
@@ -45,6 +46,11 @@ urlpatterns = [
         "instances/<slug:instance_slug>/vtt_login/<int:user_ix>/",
         login_to_instance_as_user,
         name="vtt_login",
+    ),
+    path(
+        "signup/",
+        SignupFormView.as_view(),
+        name="signup",
     ),
     path(
         "instances/<slug:instance_slug>/activate/",

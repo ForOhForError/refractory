@@ -2,6 +2,8 @@ import cgi
 import os
 import os.path
 import zipfile
+import platform
+import subprocess
 from datetime import datetime
 
 import requests
@@ -127,6 +129,32 @@ def _download_linux_zip(
         return False
 
 
+def _attempt_windows_package_update(foundry_version, releases_path="foundry_releases"):
+    """
+    From version 13 forward,
+    """
+    if platform.system() != "Linux" and foundry_version.version_tuple[0] >= 13:
+        try:
+            subprocess.run(
+                ["npm", "remove", "classic-level"],
+                shell=True,
+                cwd=os.path.join(
+                    releases_path, foundry_version.version_string, "resources", "app"
+                ),
+            )
+            subprocess.run(
+                ["npm", "i", "classic-level"],
+                shell=True,
+                cwd=os.path.join(
+                    releases_path, foundry_version.version_string, "resources", "app"
+                ),
+            )
+        except Exception:
+            raise FileNotFoundError(
+                "Could not resolve npm; non-linux platform fix failed"
+            )
+
+
 def _download_and_write_release(
     session,
     foundry_version,
@@ -153,6 +181,7 @@ def _download_and_write_release(
                 zip_ref.extractall(output_dir)
             with open(test_for_file, "w") as testfile:
                 testfile.write("refractory")
+            _attempt_windows_package_update(foundry_version, releases_path=output_path)
         return True
     except Exception as ex:
         raise ex

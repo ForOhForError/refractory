@@ -59,7 +59,7 @@ class Element:
         for entry in self.attrs.items():
             key, value = entry
             add_space = len(construct) > 0 and not (key.startswith("/"))
-            construct += f'{" " if add_space else ""}'
+            construct += f"{' ' if add_space else ''}"
             construct += (
                 f'{key}="{self.attrs[key]}"' if self.attrs[key] != None else key
             )
@@ -69,7 +69,7 @@ class Element:
         if self.data:
             return self.data
         elif self.tag:
-            return f'<{"/" if self.end else ""}{self.tag}{" " if self.attrs else ""}{self.attr_string()}{" /" if self.start_end else ""}>'
+            return f"<{'/' if self.end else ''}{self.tag}{' ' if self.attrs else ''}{self.attr_string()}{' /' if self.start_end else ''}>"
         else:
             return ""
 

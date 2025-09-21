@@ -10,6 +10,7 @@ from twisted.internet import reactor
 from refractory_home.models.foundry_models import (
     FoundryLicense,
     ManagedFoundryUser,
+    FoundryInvite
 )
 from web_interaction import foundry_interaction
 from web_server import RefractoryServer
@@ -71,7 +72,10 @@ class FoundryLicenseAdmin(admin.ModelAdmin):
 
     actions = [load_licences]
 
+class FoundryInviteAdmin(admin.ModelAdmin):
+    list_display = ["invite_code", "uses"]
 
+adminsite.register(FoundryInvite, FoundryInviteAdmin)
 adminsite.register(FoundryLicense, FoundryLicenseAdmin)
 adminsite.register(ManagedFoundryUser, ManagedUserAdmin)
 adminsite.register(get_user_model(), UserAdmin)

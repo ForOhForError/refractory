@@ -143,7 +143,6 @@ class OverrideProxyClientFactory(proxy.ProxyClientFactory):
 
 
 class SocketIOReverseProxy(proxy.ReverseProxyResource):
-
     def __init__(self, host, port, path):
         proxy.ReverseProxyResource.__init__(self, host, port, path)
         self.proxyClientFactoryClass = OverrideProxyClientFactory

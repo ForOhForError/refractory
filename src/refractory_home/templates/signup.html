@@ -1,0 +1,17 @@
+{% extends '_foundry_portal_base.html' %}
+{% load i18n %}
+
+{% block title %}Create Refractory Instance{% endblock %}
+
+{% block content %}
+<section class="panel thin-panel" id="login-panel">
+    <div class="login-panel">
+        <h2>Sign up</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+</section>
+{% endblock %}

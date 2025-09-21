@@ -9,5 +9,6 @@ services:
       - ./instance_data:/app/instance_data
       - ./db:/app/db
     environment:
-      - DJANGO_ALLOWED_HOSTS = ${DJANGO_ALLOWED_HOSTS}
-      - DJANGO_SECRET = ${DJANGO_SECRET}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DJANGO_SECRET=${DJANGO_SECRET}
+
