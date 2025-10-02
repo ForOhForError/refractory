@@ -10,6 +10,31 @@ src: url('../fonts/NodestoCapsCondensed.otf') format('opentype');
     src: url('../fonts/AmiriBold.ttf') format('truetype');
 }
 
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+  cursor: pointer;
+}
+
+.tooltiptext {
+  visibility: hidden;
+  background-color: #000000ee;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  left: 105%;
+  padding: 1em 2em;
+  width: max-content;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
 .fillspace {
     all: initial;
     width: 100%;

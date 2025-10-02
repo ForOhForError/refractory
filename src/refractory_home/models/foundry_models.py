@@ -759,15 +759,21 @@ class ManagedFoundryUser(models.Model):
         }
         return "modifyDocument", message_data
 
+
 def generate_random_slug() -> str:
     return secrets.token_urlsafe(32)
 
+
 class FoundryInvite(models.Model):
     invite_code = models.CharField(
-        max_length=64, null=False, default=generate_random_slug, validators=[validate_unicode_slug], unique=True
+        max_length=64,
+        null=False,
+        default=generate_random_slug,
+        validators=[validate_unicode_slug],
+        unique=True,
     )
     uses = models.PositiveSmallIntegerField(default=1, null=False)
-    
+
     def use_invite(self):
         if self.uses != 0:
             self.uses -= 1

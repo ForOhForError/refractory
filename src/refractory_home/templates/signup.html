@@ -1,15 +1,24 @@
 {% extends '_foundry_portal_base.html' %}
 {% load i18n %}
 
-{% block title %}Create Refractory Instance{% endblock %}
+{% block title %}Refractory: Sign up{% endblock %}
 
 {% block content %}
 <section class="panel thin-panel" id="login-panel">
     <div class="login-panel">
-        <h2>Sign up</h2>
+        <h2>Sign Up</h2>
         <form method="post">
             {% csrf_token %}
-            {{ form.as_p }}
+            {% for field in form %}
+                <label for="{{ field.auto_id }}" class="form-field-label">{{ field.label }}</label>
+                <div class="tooltip"><b>[?]</b><span class="tooltiptext">{{ field.help_text }}</span></div>
+                <div class="mt-2">
+                    {{ field }}
+                </div>
+                {% if field.errors %}
+                    <small>{{ field.errors }}</small> 
+                {% endif %}
+            {% endfor %}
             <input type="submit" value="Submit">
         </form>
     </div>

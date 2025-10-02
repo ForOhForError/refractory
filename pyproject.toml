@@ -13,6 +13,7 @@ dependencies = [
     "django>=5.0.1,<6",
     "python-socketio[client]>=5.11.4,<6",
     "beautifulsoup4>=4.12.2,<5",
+    "django-ratelimit>=4.1.0",
 ]
 
 [build-system]

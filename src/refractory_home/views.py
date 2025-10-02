@@ -13,10 +13,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, RedirectURLMixin
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 from django.views.generic import (
@@ -28,6 +29,7 @@ from django.views.generic import (
     UpdateView,
 )
 from django.views.generic.edit import FormView
+from django_ratelimit.decorators import ratelimit
 
 from refractory_home.models import (
     FoundryInstance,
@@ -146,6 +148,7 @@ class InstanceListView(SuperuserRequiredMixin, ListView):
         return context
 
 
+@method_decorator(ratelimit(key="ip", rate="10/m", method="POST"), name="post")
 class RefractoryLoginView(LoginView):
     redirect_authenticated_user = False
     template_name = "refractory_login.html"
@@ -192,24 +195,21 @@ class FoundryLoginFormView(
         foundry_site_login(username, password, resp)
         return resp
 
+
 class InviteCodeUserCreationForm(UserCreationForm):
-    invite_code = forms.CharField(help_text='Invite Code')
-    
+    invite_code = forms.CharField(help_text="Invite Code")
+
     def clean_invite_code(self):
         invite_code = self.cleaned_data.get("invite_code")
         if invite_code:
             try:
                 invite = FoundryInvite.objects.get(invite_code=invite_code)
             except FoundryInvite.DoesNotExist:
-                raise forms.ValidationError(
-                    "Invite invalid"
-                )
+                raise forms.ValidationError("Invite invalid")
         else:
-            raise forms.ValidationError(
-                "Invite code required"
-            )
+            raise forms.ValidationError("Invite code required")
         return invite_code
-    
+
     def save(self, commit=True):
         invite_code = self.cleaned_data.get("invite_code")
         invite = FoundryInvite.objects.get(invite_code=invite_code)
@@ -220,11 +220,26 @@ class InviteCodeUserCreationForm(UserCreationForm):
             user.save()
         return user
 
-class SignupFormView(
-    CreateView
-):
+
+@method_decorator(ratelimit(key="ip", rate="10/m", method="POST"), name="post")
+class SignupFormView(FormView):
     template_name = "signup.html"
     form_class = InviteCodeUserCreationForm
+    success_url = reverse_lazy("panel")
+
+    def form_valid(self, form) -> HttpResponse:
+        form.save()
+        return super().form_valid(form)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.request.GET:
+            kwargs["initial"] = {"invite_code": self.request.GET.get("code", "")}
+        return kwargs
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        return super().post(request, *args, **kwargs)
+
 
 @login_required
 @staff_member_required
