@@ -44,6 +44,10 @@ from web_interaction.foundry_interaction import (
     foundry_site_login,
 )
 
+#
+# Access Control
+#
+
 
 class SuperuserRequiredMixin(UserPassesTestMixin):
     def test_func(self):
@@ -61,6 +65,26 @@ class FoundryVTTLoginContextMixin:
         return context
 
 
+#
+# Front Page
+#
+
+
+class PanelView(LoginRequiredMixin, TemplateView):
+    template_name = "status_panel.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add in a QuerySet of all the books
+        context["instances"] = FoundryInstance.objects.all()
+        return context
+
+
+#
+# Version Managment
+#
+
+
 class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListView):
     model = FoundryVersion
     paginate_by = 20
@@ -76,6 +100,33 @@ class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListV
         FoundryVersion.load_versions(limit_refresh_seconds=60)
         qs = super().get_queryset()
         return list(reversed(sorted(qs, key=lambda n: (n.version_tuple))))
+
+
+@login_required
+@staff_member_required
+@require_POST
+def download_version(request, version_string):
+    try:
+        print(version_string)
+        foundry_version = FoundryVersion.objects.get(version_string=version_string)
+        foundry_session_id = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE)
+        foundry_version.download_version(foundry_session_id)
+        messages.error(
+            request,
+            _("Downloaded Version %s (Build %s) successfully.")
+            % (foundry_version.version_string, foundry_version.build),
+        )
+    except FoundryVersion.DoesNotExist:
+        messages.error(request, _("Bad Version String"))
+    except Exception as ex:
+        raise ex
+        messages.error(request, _("Bad Request"))
+    return redirect(reverse("version_list"))
+
+
+#
+# Instance Managment
+#
 
 
 class InstanceCreateView(SuperuserRequiredMixin, CreateView):
@@ -148,6 +199,11 @@ class InstanceListView(SuperuserRequiredMixin, ListView):
         return context
 
 
+#
+# Login (Refractory and FoundryVTT site)
+#
+
+
 @method_decorator(ratelimit(key="ip", rate="10/m", method="POST"), name="post")
 class RefractoryLoginView(LoginView):
     redirect_authenticated_user = False
@@ -156,16 +212,6 @@ class RefractoryLoginView(LoginView):
     def form_invalid(self, form):
         messages.error(self.request, _("Invalid username or password"))
         return self.render_to_response(self.get_context_data(form=form))
-
-
-class PanelView(LoginRequiredMixin, TemplateView):
-    template_name = "status_panel.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Add in a QuerySet of all the books
-        context["instances"] = FoundryInstance.objects.all()
-        return context
 
 
 class FoundryLoginForm(forms.Form):
@@ -194,6 +240,11 @@ class FoundryLoginFormView(
         password = form.cleaned_data["password"]
         foundry_site_login(username, password, resp)
         return resp
+
+
+#
+# Invite Management
+#
 
 
 class InviteCodeUserCreationForm(UserCreationForm):
@@ -241,26 +292,9 @@ class SignupFormView(FormView):
         return super().post(request, *args, **kwargs)
 
 
-@login_required
-@staff_member_required
-@require_POST
-def download_version(request, version_string):
-    try:
-        print(version_string)
-        foundry_version = FoundryVersion.objects.get(version_string=version_string)
-        foundry_session_id = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE)
-        foundry_version.download_version(foundry_session_id)
-        messages.error(
-            request,
-            _("Downloaded Version %s (Build %s) successfully.")
-            % (foundry_version.version_string, foundry_version.build),
-        )
-    except FoundryVersion.DoesNotExist:
-        messages.error(request, _("Bad Version String"))
-    except Exception as ex:
-        raise ex
-        messages.error(request, _("Bad Request"))
-    return redirect(reverse("version_list"))
+#
+# Actions for Instances
+#
 
 
 @login_required
@@ -403,19 +437,11 @@ def activate_world(request, instance_slug, world_id):
     if request.method == "POST":
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            if not instance.is_active:
-                activated = instance.activate()
-                if not activated:
-                    messages.info(
-                        request,
-                        f"Couldn't launch instance {instance.display_name} to activate world.",
-                    )
-                    return redirect(reverse("panel"))
-            world_launched = instance.activate_world(world_id, force=False)
-            if world_launched:
-                messages.info(request, _("World activated."))
-            else:
-                messages.info(request, _("World could not be activated."))
+            instance.queue_world_activate(world_id)
+            # if world_launched:
+            #     messages.info(request, _("World activated."))
+            # else:
+            messages.info(request, _("Activating World."))
         except FoundryInstance.DoesNotExist:
             messages.error(request, _("Instance does not exist."))
     return redirect(reverse("panel"))
@@ -427,7 +453,7 @@ def activate_instance(request, instance_slug):
     if request.method == "POST":
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            instance.activate()
+            instance.queue_instance_activer()
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
     messages.info(

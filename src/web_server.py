@@ -5,7 +5,7 @@ from urllib.parse import quote_plus
 
 from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
 from django.urls import reverse, set_script_prefix
-from twisted.internet import reactor
+from twisted.internet import reactor, threads
 from twisted.web.resource import Resource, IResource
 from twisted.web.server import NOT_DONE_YET, Site
 from twisted.web.util import redirectTo
@@ -14,6 +14,8 @@ from twisted.web.wsgi import WSGIResource
 import web_interaction.foundry_resource
 from refractory_settings import MANAGEMENT_PATH
 from web_interaction.foundry_resource import INSTANCE_PATH
+
+import queue
 
 MIN_INTERNAL_PORT = 30000
 _MODULE = sys.modules[__name__]
@@ -29,9 +31,31 @@ class HomeResource(Resource):
         return NOT_DONE_YET
 
 
+class TaskQueue:
+    def __init__(self):
+        self.queue = queue.Queue()
+        self.dispatching = False
+
+    def queue_task(self, task, *args):
+        self.queue.put((task, args))
+
+    def dispatch(self, *_, check=False, **__):
+        if check and self.dispatching:
+            return
+        else:
+            self.dispatching = True
+            try:
+                task, task_args = self.queue.get(timeout=1)
+                defered = threads.deferToThread(task, *task_args)
+                defered.addCallback(self.dispatch)
+            except queue.Empty:
+                self.dispatching = False
+
+
 class RefractoryServer:
     def __init__(self):
         set_script_prefix(f"/{MANAGEMENT_PATH}/")
+        self.task_queue = TaskQueue()
         self.foundry_resources = {}
         self.refractory_root_res = Resource()
         self.refractory_instances_res = Resource()
@@ -45,6 +69,13 @@ class RefractoryServer:
         )
         self.refractory_instances_res.putChild(b"", HomeResource())
         self.refractory_root_res.putChild(b"", HomeResource())
+
+    def queue_and_dispatch(self, task, *args):
+        print("queueing")
+        self.task_queue.queue_task(task, *args)
+        print("queued; dispatching")
+        self.task_queue.dispatch(check=True)
+        print("done dispatching")
 
     def get_unassigned_port(self):
         if not len(self.foundry_resources):

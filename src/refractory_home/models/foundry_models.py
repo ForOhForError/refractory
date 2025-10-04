@@ -28,6 +28,7 @@ from refractory_settings import SERVER_PORT
 from web_interaction import foundry_interaction
 from web_interaction.foundry_resource import INSTANCE_PATH
 from web_server import RefractoryServer
+from twisted.internet import reactor
 
 DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
@@ -136,7 +137,10 @@ class FoundryInstance(models.Model):
     def instance_state(self) -> FoundryState:
         foundry_resource = RefractoryServer.get_server().get_foundry_resource(self)
         if foundry_resource:
-            response = requests.get(self.server_facing_base_url)
+            try:
+                response = requests.get(self.server_facing_base_url)
+            except requests.exceptions.ConnectionError:
+                return FoundryState.INACTIVE
             if LICENSE_STATE_SEARCH_STRING in response.content.decode():
                 return FoundryState.LICENSE
             else:
@@ -292,7 +296,21 @@ class FoundryInstance(models.Model):
         else:
             return True
 
+    def queue_world_activate(self, world_id):
+        print("dispatching")
+        RefractoryServer.get_server().queue_and_dispatch(self.activate_world, world_id)
+        print("done")
+
+    def queue_instance_activer(self):
+        RefractoryServer.get_server().queue_and_dispatch(self.activate)
+
     def activate_world(self, world_id, force=False) -> bool:
+        # Try to activate if we're not already activated
+        if not self.is_active:
+            activated = self.activate()
+            if not activated:
+                return False
+
         # preamble to deactivate an activated world
         if self.instance_state == FoundryState.JOIN:
             if self.active_world_id != world_id:
