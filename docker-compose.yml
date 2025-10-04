@@ -4,10 +4,10 @@ services:
     ports: 
       - 8080:8080
     volumes:
-      - ./foundry_releases_zip:/app/foundry_releases_zip
-      - ./foundry_releases:/app/foundry_releases
-      - ./instance_data:/app/instance_data
-      - ./db:/app/db
+      - ./foundry_releases_zip:/home/refractory/foundry_releases_zip
+      - ./foundry_releases:/home/refractory/foundry_releases
+      - ./instance_data:/home/refractory/instance_data
+      - ./db:/home/refractory/db
     environment:
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
       - DJANGO_SECRET=${DJANGO_SECRET}
