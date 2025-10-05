@@ -95,7 +95,7 @@ class FoundryInstance(models.Model):
     @classmethod
     def synch_to_refractory_hosting(cls):
         for instance in cls.objects.exclude(foundry_license=None):
-            print(instance)
+            pass
 
     @property
     def data_path(self) -> str:
@@ -206,17 +206,15 @@ class FoundryInstance(models.Model):
                                             event, data=data, timeout=1
                                         )
                                     except TimeoutError:
-                                        print(f"timeout!")
                                         user_response = {}
                                         continue
                                     result = user_response.get("result", [None])[0]
                                     if result:
-                                        print(f"registration succeeded; saving user")
                                         vtt_user_id = result.get("_id")
                                         re_user.user_id = vtt_user_id
                                         re_user.save()
         except Exception as ex:
-            print(ex)
+            logging.exception("sync failed")
 
     def register_managed_gm(self, world_id, user_id, user_name) -> "ManagedFoundryUser":
         managed_gm = ManagedFoundryUser(
@@ -297,9 +295,7 @@ class FoundryInstance(models.Model):
             return True
 
     def queue_world_activate(self, world_id):
-        print("dispatching")
         RefractoryServer.get_server().queue_and_dispatch(self.activate_world, world_id)
-        print("done")
 
     def queue_instance_activer(self):
         RefractoryServer.get_server().queue_and_dispatch(self.activate)
@@ -361,12 +357,14 @@ class FoundryInstance(models.Model):
                     }
                     eula_res = session.post(eula_url, data=form_body)
                     if eula_res.ok:
-                        print(
+                        logging.info(
                             "Accepting EULA automatically, as it has been manually agreed to."
                         )
                         return True
             else:
-                print("Cannot accept EULA automatically :(")
+                logging.warning(
+                    "Cannot accept EULA automatically, must be manually agreed to by user interaction at least once."
+                )
         return False
 
     def assign_license_if_able(self) -> bool:
@@ -465,8 +463,9 @@ class FoundryInstance(models.Model):
                     res = session.get(base_url)
                     break
                 except Exception as ex:
-                    logging.info("time out")
-                    time.sleep(0.1)
+                    # logging.exception("couldn't connect")
+                    logging.info("time out?")
+                    time.sleep(1)
 
     def activate_license(self) -> bool:
         with requests.Session() as session:

@@ -107,7 +107,6 @@ class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListV
 @require_POST
 def download_version(request, version_string):
     try:
-        print(version_string)
         foundry_version = FoundryVersion.objects.get(version_string=version_string)
         foundry_session_id = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE)
         foundry_version.download_version(foundry_session_id)
@@ -228,7 +227,6 @@ class FoundryLoginFormView(
     def get_success_url(self):
         """Return the default redirect URL."""
         next_page = self.request.GET.get("next")
-        print(self.request.GET)
         if next_page:
             return resolve_url(next_page)
         else:

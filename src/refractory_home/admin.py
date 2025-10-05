@@ -1,3 +1,4 @@
+import logging
 import requests
 from django.contrib import admin
 from django.contrib.auth import get_user_model
@@ -60,7 +61,7 @@ def load_licences(modeladmin, request, queryset):
                 load_licenses_threaded, foundry_session, foundry_username
             )
     else:
-        print("not logged in")
+        logging.error("not logged in")
 
 
 class ManagedUserAdmin(admin.ModelAdmin):

@@ -8,7 +8,10 @@ services:
       - ./foundry_releases:/home/refractory/foundry_releases
       - ./instance_data:/home/refractory/instance_data
       - ./db:/home/refractory/db
+      - update-data:/home/refractory/refractory_data
     environment:
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
       - DJANGO_SECRET=${DJANGO_SECRET}
+volumes:
+  update-data:
 

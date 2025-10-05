@@ -6,12 +6,15 @@ import platform
 import subprocess
 from datetime import datetime
 
+import logging
 import requests
 from bs4 import BeautifulSoup
 from django.http import HttpResponse
 from twisted.internet import reactor
 from twisted.python import log
 from twisted.web import proxy, server
+
+LOGGER = logging.getLogger("foundry_interaction")
 
 FOUNDRY_SESSION_COOKIE = "foundry_session"
 FOUNDRY_USERNAME_COOKIE = "foundry_username"
@@ -54,9 +57,9 @@ def get_releases(session):
                 {"version": version, "build": build_no, "tags": tags, "date": date}
             )
     except requests.ConnectionError:
-        print("Couldn't fetch release page due to connection error")
+        LOGGER.warning("Couldn't fetch release page due to connection error")
     except requests.HTTPError:
-        print("Couldn't fetch release page due to server error")
+        LOGGER.warning("Couldn't fetch release page due to server error")
     return parsed_releases
 
 
@@ -192,7 +195,7 @@ def _download_and_write_release(
 def download_single_release(foundry_version, foundry_session_id):
     with requests.Session() as rsession:
         rsession.cookies.update({"sessionid": foundry_session_id})
-        print(
+        LOGGER.info(
             f"downloading release {foundry_version.version_string} (build {foundry_version.build})"
         )
         foundry_version.download_status = foundry_version.DownloadStatus.DOWNLOADING
@@ -201,7 +204,7 @@ def download_single_release(foundry_version, foundry_session_id):
         try:
             success = _download_and_write_release(rsession, foundry_version)
         except Exception as ex:
-            print(f"Exception while downloading: {ex}")
+            LOGGER.exception(f"Exception while downloading")
         foundry_version.download_status = (
             foundry_version.DownloadStatus.DOWNLOADED
             if success

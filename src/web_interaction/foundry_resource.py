@@ -128,7 +128,7 @@ class OverrideProxyClient(proxy.ProxyClient):
             try:
                 self.father.finish()
             except RuntimeError:
-                print("supressed error successfully! yay!")
+                pass
             self.transport.loseConnection()
 
 

@@ -16,6 +16,9 @@ from refractory_settings import MANAGEMENT_PATH
 from web_interaction.foundry_resource import INSTANCE_PATH
 
 import queue
+import logging
+
+LOGGER = logging.getLogger("server")
 
 MIN_INTERNAL_PORT = 30000
 _MODULE = sys.modules[__name__]
@@ -71,11 +74,8 @@ class RefractoryServer:
         self.refractory_root_res.putChild(b"", HomeResource())
 
     def queue_and_dispatch(self, task, *args):
-        print("queueing")
         self.task_queue.queue_task(task, *args)
-        print("queued; dispatching")
         self.task_queue.dispatch(check=True)
-        print("done dispatching")
 
     def get_unassigned_port(self):
         if not len(self.foundry_resources):
@@ -84,7 +84,7 @@ class RefractoryServer:
         for port in range(MIN_INTERNAL_PORT, max(assigned_ports) + 2):
             if port not in assigned_ports:
                 return port
-        print("port assignment failed")
+        LOGGER.warning("port assignment failed")
 
     def run(self, port=8080):
         reactor.listenTCP(port, self.site)
@@ -105,7 +105,7 @@ class RefractoryServer:
                 self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
                 self.foundry_resources[foundry_instance.instance_name] = foundry_res
                 foundry_instance.post_activate()
-                print(
+                LOGGER.info(
                     f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}"
                 )
                 return True
@@ -118,7 +118,7 @@ class RefractoryServer:
         if foundry_instance.instance_name in self.foundry_resources:
             res = self.foundry_resources.pop(foundry_instance.instance_name)
             res.end_process()
-            print(
+            LOGGER.info(
                 f"stopped {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string}"
             )
 

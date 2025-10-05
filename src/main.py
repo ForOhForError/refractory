@@ -8,6 +8,8 @@ from twisted.python.log import FileLogObserver, _safeFormat, textFromEventDict
 from refractory_settings import SERVER_PORT
 from web_server import RefractoryServer
 
+LOGGER = logging.getLogger("main")
+
 
 class LogObserver(FileLogObserver):
     def emit(self, eventDict):
@@ -24,7 +26,7 @@ def start_log():
 
 
 def main():
-    print("Running Refractory Server on port", SERVER_PORT)
+    LOGGER.info("Running Refractory Server on port", SERVER_PORT)
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "refractory.settings")
     logging.basicConfig(level=logging.INFO)
     RefractoryServer.get_server().run(port=SERVER_PORT)
