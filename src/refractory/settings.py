@@ -30,7 +30,7 @@ SECRET_KEY = refractory.environment.DJANGO_SECRET
 DEBUG = refractory.environment.DJANGO_DEBUG
 
 ALLOWED_HOSTS = refractory.environment.DJANGO_ALLOWED_HOSTS
-
+CSRF_TRUSTED_ORIGINS = refractory.environment.DJANGO_CSRF_TRUSTED_ORIGINS
 
 # Application definition
 
