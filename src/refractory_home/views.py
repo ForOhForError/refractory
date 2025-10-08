@@ -76,7 +76,7 @@ class PanelView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Add in a QuerySet of all the books
-        context["instances"] = FoundryInstance.objects.all()
+        context["instances"] = FoundryInstance.viewable_by_user(self.request.user)
         return context
 
 
@@ -130,7 +130,7 @@ def download_version(request, version_string):
 
 class InstanceCreateView(SuperuserRequiredMixin, CreateView):
     model = FoundryInstance
-    fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
+    fields = ["instance_name", "instance_slug", "display_name", "foundry_version", "view_group", "access_group", "gm_group", "manage_group"]
     template_name = "instance_create.html"
     success_url = reverse_lazy("instance_list")
 
@@ -151,7 +151,7 @@ class InstanceCreateView(SuperuserRequiredMixin, CreateView):
 
 class InstanceUpdateView(SuperuserRequiredMixin, UpdateView):
     model = FoundryInstance
-    fields = ["instance_name", "instance_slug", "display_name", "foundry_version"]
+    fields = ["instance_name", "instance_slug", "display_name", "foundry_version", "view_group", "access_group", "gm_group", "manage_group"]
     template_name = "instance_update.html"
     slug_field = "instance_slug"
     slug_url_kwarg = "instance_slug"
@@ -262,9 +262,11 @@ class InviteCodeUserCreationForm(UserCreationForm):
     def save(self, commit=True):
         invite_code = self.cleaned_data.get("invite_code")
         invite = FoundryInvite.objects.get(invite_code=invite_code)
-        invite.use_invite()
         user = super(UserCreationForm, self).save(commit=False)
         user.set_password(self.cleaned_data["password1"])
+        for group in invite.assign_user_groups.all():
+            user.groups.add(group)
+        invite.use_invite()
         if commit:
             user.save()
         return user

@@ -1,9 +1,11 @@
 import json
 import logging
 import os
+import pathlib
 import re
 import secrets
 import shutil
+import string
 import time
 import typing
 from datetime import timedelta
@@ -17,6 +19,7 @@ from django.conf import settings
 from django.core.validators import RegexValidator, validate_unicode_slug
 from django.db import models, transaction
 from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
+from django.contrib.auth.models import Group
 from django.dispatch import receiver
 from django.templatetags.static import static as static_url
 from django.urls import reverse
@@ -30,9 +33,10 @@ from web_interaction.foundry_resource import INSTANCE_PATH
 from web_server import RefractoryServer
 from twisted.internet import reactor
 
+import plyvel
+
 DATA_PATH_BASE = "instance_data"
 RELEASE_PATH_BASE = "foundry_releases"
-
 
 class FoundryState(Enum):
     """
@@ -85,12 +89,47 @@ class FoundryInstance(models.Model):
         on_delete=models.SET_NULL,
         related_name="+",
     )
+    # Group Permissions
+    view_group = models.ForeignKey(
+        Group, blank=True, null=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Group able to view the instance on the front page; when not set, any user can see the instance."
+    )
+    access_group = models.ForeignKey(
+        Group, blank=True, null=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Group able to log into and register users for the instance; when not set, any user can see the instance."
+    )
+    gm_group = models.ForeignKey(
+        Group, blank=True, null=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Group able to register GM users for the instance; when not set, only superusers can do so."
+    )
+    manage_group = models.ForeignKey(
+        Group, blank=True, null=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Group able to access the config page for the instance to install modules/systems and make worlds; when not set, only superusers can do so."
+    )
 
     def __str__(self) -> str:
         return self.display_name if self.display_name else self.instance_name
 
     def get_absolute_url(self):
         return reverse("instance_update", kwargs={"instance_slug": self.instance_slug})
+
+    @classmethod
+    def viewable_by_user(cls, user):
+        if user:
+            if user.is_superuser:
+                return cls.objects.all()
+            else:
+                return cls.objects.filter(view_group=None) | cls.objects.filter(view_group__in=user.groups.all())
+        else:
+            return cls.objects.none()
 
     @classmethod
     def synch_to_refractory_hosting(cls):
@@ -402,6 +441,64 @@ class FoundryInstance(models.Model):
                                 world_dict["id"] = str(file_handle)
                             all_worlds.append(world_dict)
         return all_worlds
+    
+    def get_level_db(self, world_id, database_name):
+        worlds_path = os.path.join(self.data_path, "Data", "worlds")
+        if os.path.exists(worlds_path) and os.path.isdir(worlds_path):
+            db_path = os.path.join(worlds_path, world_id, "data", database_name)
+            if os.path.exists(db_path):
+                return plyvel.DB(db_path)
+        return None
+    
+    def get_nedb(self, world_id, database_name):
+        worlds_path = os.path.join(self.data_path, "Data", "worlds")
+        if os.path.exists(worlds_path) and os.path.isdir(worlds_path):
+            db_path = os.path.join(worlds_path, world_id, "data", f"{database_name}.db")
+            if os.path.exists(db_path):
+                return pathlib.Path(db_path)
+        return None
+    
+    def inject_managed_gm_to_db(self, world_id):
+        # user ids must be 16-character alphanumeric
+        id = "RefractoryAdmin0"
+        user_data = {
+            "name":"Refractory Managed GM",
+            # GM role
+            "role":4,
+            "_id":id,
+            # Some password/salt pair for a blank password
+            "password":"0fefa5a03ff8c87a8a9c334575382acfc5a6ee7ac5cbcf4538775bee7b7ea2d8754ba49a58e15ff63867e2de6cb2c5904aa1a1e842de5a2934609d729b4a7598",
+            "passwordSalt":"68aec1c9c2259e177fb5b628fa94578bad9f30be29c6ad971a5d029476fbbee3",
+            "avatar":None,
+            "character":None,
+            "color":"#ff0000",
+            "pronouns":"",
+            "hotbar":{},
+            "permissions":{},
+            "flags":{},
+            "_stats":{}
+        }
+        if self.version_tuple[0] < 11:
+            try:
+                db = self.get_nedb(world_id, "users")
+                if db:
+                    lines = db.read_text().split("\n")
+                    lines.append(json.dumps(user_data))
+                    db.write_text("\n".join(lines))
+                    return True
+            except Exception:
+                pass
+        else:
+            key, value = f"!users!{id}".encode('ascii'), json.dumps(user_data).encode('ascii')
+            try:
+                db = self.get_level_db(world_id, "users")
+                if db:
+                    with db:
+                        db.put(key, value)
+                return True
+            except Exception:
+                pass
+        return False
 
     def activate(self) -> bool:
         return RefractoryServer.get_server().add_foundry_instance(self)
@@ -776,10 +873,10 @@ class ManagedFoundryUser(models.Model):
         }
         return "modifyDocument", message_data
 
+INVITE_CODE_CHARS = string.ascii_letters + string.digits
 
-def generate_random_slug() -> str:
-    return secrets.token_urlsafe(32)
-
+def generate_random_slug(length=20) -> str:
+    return "".join([secrets.choice(INVITE_CODE_CHARS) for _ in range(length)])
 
 class FoundryInvite(models.Model):
     invite_code = models.CharField(
@@ -790,6 +887,7 @@ class FoundryInvite(models.Model):
         unique=True,
     )
     uses = models.PositiveSmallIntegerField(default=1, null=False)
+    assign_user_groups = models.ManyToManyField(Group, blank=True, null=True, help_text="Groups that will be assigned to users generated from this invite")
 
     def use_invite(self):
         if self.uses != 0:

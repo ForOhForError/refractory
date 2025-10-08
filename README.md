@@ -34,8 +34,8 @@ Initial Release:
 - [X] Version/Release Management and Corresponding Pages
 - [X] Instance Management and Corresponding Pages
 - [ ] Invite Management and Corresponding Pages
-- [ ] User Management and Corresponding Pages
-- [ ] Action for releasing container images to a registry
+- [ ] User + Group Management and Corresponding Pages
+- [X] Action for releasing container images to a registry
 
 Nice-to-haves:
 
@@ -43,7 +43,6 @@ Nice-to-haves:
 - [ ] Barebones non-managed mode
 - [ ] In-depth desync protection (prevent user passwords from being changed, etc)
 - [ ] Instance importing
-- [ ] "Naughty" niceness mode, for injecting refractory-manged users into imported worlds.
 - [ ] Cleanup of removed instances/versions
 - [ ] Smarter management of extracted foundry versions - zip file should be the authoritative artifact
 - [ ] Discord auth as secondary or alternate login
@@ -53,6 +52,5 @@ Nice-to-haves:
 The following projects have been pulled into this project's source.
 
 - [Foundry Portal](https://github.com/Daxiongmao87/foundry-portal) - Heavily modified to be used as html/css templates.
-- [leveldb.py](https://github.com/jtolio/leveldb-py) - Manipulation of leveldb databases - currently unused.
 
 (Full project licenses are included in the `licenses/` directory)

@@ -241,6 +241,23 @@ wheels = [
 ]
 
 [[package]]
+name = "plyvel-ci"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/15/2dd89d1ec81ea44a41e6f35ad1a8a7789e7345831646daf03c6501172396/plyvel-ci-1.5.1.tar.gz", hash = "sha256:c28d861c56911ae70f481864016301e2d526c6c923f6aa9aa3cdf2c053457e29", size = 36869, upload-time = "2024-04-07T06:00:42.296Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/37/f9/1c8307d17bd75700ba019bd953634e2b9c2fdf82ac127588f7bf29d71b80/plyvel_ci-1.5.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:2f5cd3033d29d4c125ed06fc8de1231b3a67c5d7b90d8757524e77974e1dea80", size = 522647, upload-time = "2024-04-07T05:59:16.606Z" },
+    { url = "https://files.pythonhosted.org/packages/01/7c/ee51fb15448290b77a4d58a0db645e3d769b18f2013c42dc6ee9676101b4/plyvel_ci-1.5.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4b4bbd4a8051ca3b0daf4ccf4cfc9827f0c2cf2872abb4f5d8522a216650f337", size = 833393, upload-time = "2024-04-07T05:59:18.538Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/3f/433d4b7d36dc0097cefaaf376ea81945b41779fb1280a5f0349fb8c993ff/plyvel_ci-1.5.1-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:8e8b50a551955be81e3dbbee02458d21216402cc273e62d9a243199470a9a47c", size = 831832, upload-time = "2024-04-07T05:59:20.368Z" },
+    { url = "https://files.pythonhosted.org/packages/db/8a/f5a4d56f43afda0a6aadf1fcc7136e2125b2f2c683f8027ad29d412dd73b/plyvel_ci-1.5.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:81926d0a5bda01538a3606fee03a4b7bfbb157209d3232f41534d50caceca05e", size = 835771, upload-time = "2024-04-07T05:59:21.589Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/fd/fe7c3e6f947707979d77b9dff140f3a08f55b2192367b0649379eb0098a6/plyvel_ci-1.5.1-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:2783e0714ae3f61ae878be9c00be988865e1565114b5d93f5b961497eaf85652", size = 1368299, upload-time = "2024-04-07T05:59:23.436Z" },
+    { url = "https://files.pythonhosted.org/packages/de/9c/afe60614378d230388df7c8586f02f2536b7a06e0d4c66f8798d9cc504e9/plyvel_ci-1.5.1-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:30f77c7bffe4d0f6f38f00c89438af05f8a621ea16be73559b7d9f21bf2221c1", size = 1440080, upload-time = "2024-04-07T05:59:25.354Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/c6/efa68e900ca78879b5b1edf36f9c488a4eaf58c606763aa4965a0f6a7e64/plyvel_ci-1.5.1-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:871c3f20509310909f45c89af46a5718274c9a9596700daead7d050c75a024b7", size = 1388909, upload-time = "2024-04-07T05:59:27.303Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/41/0038fe7e1849a6b4e37bcb9b90df58174818cd5efd9cf7a6aa0315bea7d0/plyvel_ci-1.5.1-cp310-cp310-win32.whl", hash = "sha256:d9b46b6eaf207edbc886da83bdebae3253bc6f1778aea542e8d98cfb70bb55e9", size = 363142, upload-time = "2024-04-07T05:59:28.503Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/57/d7e5ef3eb3d132e664514978fe16d87457462c66d0a0e21c16b98d90ddcb/plyvel_ci-1.5.1-cp310-cp310-win_amd64.whl", hash = "sha256:4480089c4bfde3e8a12eb2dd3790d299a685ba65781dbf6d415e11a7cd3803de", size = 449023, upload-time = "2024-04-07T05:59:30.122Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "2.22"
 source = { registry = "https://pypi.org/simple" }
@@ -289,6 +306,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "django" },
     { name = "django-ratelimit" },
+    { name = "plyvel-ci" },
     { name = "python-socketio", extra = ["client"] },
     { name = "requests" },
     { name = "twisted" },
@@ -301,6 +319,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12.2,<5" },
     { name = "django", specifier = ">=5.0.1,<6" },
     { name = "django-ratelimit", specifier = ">=4.1.0" },
+    { name = "plyvel-ci", specifier = ">=1.5.1" },
     { name = "python-socketio", extras = ["client"], specifier = ">=5.11.4,<6" },
     { name = "requests", specifier = ">=2.31.0,<3" },
     { name = "twisted", specifier = ">=22.10.0,<23" },
