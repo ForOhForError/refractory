@@ -1,0 +1,36 @@
+{% extends '_manage_base.html' %}
+
+{% block title %}User Group Management{% endblock %}
+
+{% block content %}
+<section class="panel thin-panel" id="login-panel">
+    <div class="login-panel">
+        <h2>User Groups</h2>
+        <ul>
+            {% for instance in object_list %}
+                <li><a href="{% url 'group_update' instance.id %}">{{ instance.name }}</a></li>
+            {% empty %}
+                <li>No groups yet.</li>
+            {% endfor %}
+            <li><a href="{% url 'group_create' %}">Create Group</a></li>
+        </ul>
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; first</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                {% endif %}
+        
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
+        
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</section>
+{% endblock %}

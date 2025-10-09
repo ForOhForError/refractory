@@ -11,6 +11,10 @@ from .views import (
     PanelView,
     RefractoryLoginView,
     VersionListView,
+    SignupFormView,
+    GroupUpdateView,
+    GroupListView,
+    GroupCreateView,
     activate_instance,
     activate_world,
     download_instance_backup,
@@ -19,7 +23,6 @@ from .views import (
     login_to_instance_as_admin,
     login_to_instance_as_managed_gm,
     login_to_instance_as_user,
-    SignupFormView,
 )
 
 urlpatterns = [
@@ -52,6 +55,17 @@ urlpatterns = [
         SignupFormView.as_view(),
         name="signup",
     ),
+    path(
+        "groups/",
+        GroupListView.as_view(),
+        name="group_list",
+    ),
+    path(
+        "groups/<int:group_id>/",
+        GroupUpdateView.as_view(),
+        name="group_update",
+    ),
+    path("create-group/", GroupCreateView.as_view(), name="group_create"),
     path(
         "instances/<slug:instance_slug>/activate/",
         activate_instance,

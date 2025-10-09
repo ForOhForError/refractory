@@ -8,13 +8,14 @@ from django import forms
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import Group
 from django.contrib.auth.views import LoginView, RedirectURLMixin
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -75,7 +76,6 @@ class PanelView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add in a QuerySet of all the books
         context["instances"] = FoundryInstance.viewable_by_user(self.request.user)
         return context
 
@@ -119,7 +119,6 @@ def download_version(request, version_string):
         messages.error(request, _("Bad Version String"))
     except Exception as ex:
         raise ex
-        messages.error(request, _("Bad Request"))
     return redirect(reverse("version_list"))
 
 
@@ -130,7 +129,16 @@ def download_version(request, version_string):
 
 class InstanceCreateView(SuperuserRequiredMixin, CreateView):
     model = FoundryInstance
-    fields = ["instance_name", "instance_slug", "display_name", "foundry_version", "view_group", "access_group", "gm_group", "manage_group"]
+    fields = [
+        "instance_name",
+        "instance_slug",
+        "display_name",
+        "foundry_version",
+        "view_group",
+        "access_group",
+        "gm_group",
+        "manage_group",
+    ]
     template_name = "instance_create.html"
     success_url = reverse_lazy("instance_list")
 
@@ -151,7 +159,16 @@ class InstanceCreateView(SuperuserRequiredMixin, CreateView):
 
 class InstanceUpdateView(SuperuserRequiredMixin, UpdateView):
     model = FoundryInstance
-    fields = ["instance_name", "instance_slug", "display_name", "foundry_version", "view_group", "access_group", "gm_group", "manage_group"]
+    fields = [
+        "instance_name",
+        "instance_slug",
+        "display_name",
+        "foundry_version",
+        "view_group",
+        "access_group",
+        "gm_group",
+        "manage_group",
+    ]
     template_name = "instance_update.html"
     slug_field = "instance_slug"
     slug_url_kwarg = "instance_slug"
@@ -238,6 +255,95 @@ class FoundryLoginFormView(
         password = form.cleaned_data["password"]
         foundry_site_login(username, password, resp)
         return resp
+
+
+#
+# Group Management
+#
+
+
+class GroupRelatedUserForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ["name"]
+
+    users = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.filter(is_active=True),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("instance"):
+            initial = kwargs.setdefault("initial", {})
+            initial["users"] = [t.pk for t in kwargs["instance"].user_set.all()]
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        old_save_m2m = self.save_m2m
+
+        def save_m2m():
+            old_save_m2m()
+            instance.user_set.clear()
+            instance.user_set.add(*self.cleaned_data["users"])
+
+        self.save_m2m = save_m2m
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+
+        return instance
+
+
+class GroupListView(SuperuserRequiredMixin, ListView):
+    model = Group
+    paginate_by = 20
+    template_name = "group_list.html"
+    ordering = ["id"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        return context
+
+
+class GroupCreateView(SuperuserRequiredMixin, CreateView):
+    model = Group
+    fields = ["name"]
+    template_name = "group_create.html"
+    success_url = reverse_lazy("group_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Create Foundry Instance")
+        context["submit_text"] = _("Create")
+        return context
+
+
+class GroupUpdateView(SuperuserRequiredMixin, UpdateView):
+    model = Group
+    template_name = "group_update.html"
+    slug_field = "id"
+    slug_url_kwarg = "group_id"
+    form_class = GroupRelatedUserForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Update Foundry Instance")
+        context["submit_text"] = _("Update")
+        return context
+
+    def get_success_url(self):
+        if "group_id" in self.kwargs:
+            group_id = self.kwargs["group_id"]
+            return reverse("group_update", kwargs={"group_id": group_id})
+        else:
+            return reverse("panel")
 
 
 #

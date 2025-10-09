@@ -1,0 +1,20 @@
+{% extends '_manage_base.html' %}
+{% load i18n %}
+
+{% block title %}Edit User Group{% endblock %}
+
+{% block content %}
+<section class="panel thin-panel" id="login-panel">
+    <div class="login-panel">
+        <h2>Edit User Group</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="{{submit_text}}">
+        </form>
+        <form action="{% url 'group_list' %}" method="get">
+            <button type="submit">{% translate "Back" %}</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
