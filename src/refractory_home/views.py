@@ -467,7 +467,7 @@ class ManagedUserCreationForm(forms.Form):
         return user
 
 
-class RegisterUserView(FormView, UserPassesTestMixin):
+class RegisterUserView(FormView, UserPassesTestMixin, LoginRequiredMixin):
     model = ManagedFoundryUser
     form_class = ManagedUserCreationForm
     template_name = "register_user.html"
@@ -558,12 +558,13 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
             redirect_url, cookies = instance.vtt_login(managed_user)
             if redirect_url:
                 redirect_res = redirect(redirect_url)
-                for key, value in cookies.items():
-                    if value:
-                        redirect_res.set_cookie(
-                            key=key, value=value, samesite="Strict", secure=False
-                        )
-                return redirect_res
+                if cookies:
+                    for key, value in cookies.items():
+                        if value:
+                            redirect_res.set_cookie(
+                                key=key, value=value, samesite="Strict", secure=False
+                            )
+                    return redirect_res
     except FoundryInstance.DoesNotExist:
         messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))
@@ -571,26 +572,52 @@ def login_to_instance_as_user(request, instance_slug, user_ix):
     return redirect(reverse("panel"))
 
 
+class ConfirmSetupView(TemplateView, LoginRequiredMixin):
+    template_name = "setup_confirm.html"
+
+    def get_instance(self):
+        try:
+            return FoundryInstance.objects.get(
+                instance_slug=self.kwargs.get("instance_slug")
+            )
+        except FoundryInstance.DoesNotExist:
+            return None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["user"] = self.request.user
+        context["instance"] = self.get_instance()
+        return context
+
+
 @login_required
-@staff_member_required
 @require_POST
 def login_to_instance_as_admin(request, instance_slug):
     try:
         instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        if instance.instance_state == FoundryState.JOIN:
-            instance.deactivate_world()
-        if instance.instance_state == FoundryState.SETUP:
-            redirect_url, cookies = instance.admin_login()
-            if redirect_url:
-                redirect_res = redirect(redirect_url)
-                for key, value in cookies.items():
-                    if value:
-                        redirect_res.set_cookie(
-                            key=key, value=value, samesite="Strict", secure=False
-                        )
-                return redirect_res
+        if instance.user_can_manage(request.user):
+            if instance.instance_state == FoundryState.JOIN:
+                instance.deactivate_world()
+            if instance.instance_state == FoundryState.SETUP:
+                redirect_url, cookies = instance.admin_login()
+                if redirect_url:
+                    redirect_res = redirect(redirect_url)
+                    if cookies:
+                        for key, value in cookies.items():
+                            if value:
+                                redirect_res.set_cookie(
+                                    key=key,
+                                    value=value,
+                                    samesite="Strict",
+                                    secure=False,
+                                )
+                        return redirect_res
+            else:
+                messages.error(request, _("Bad Instance State"))
         else:
-            messages.error(request, _("Bad Instance State"))
+            return redirect(
+                reverse("confirm_instance_setup", args=[instance.instance_slug])
+            )
     except FoundryInstance.DoesNotExist:
         messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))
@@ -614,12 +641,16 @@ def login_to_instance_as_managed_gm(request, instance_slug):
                 redirect_url, cookies = instance.vtt_login(managed_user)
                 if redirect_url:
                     redirect_res = redirect(redirect_url)
-                    for key, value in cookies.items():
-                        if value:
-                            redirect_res.set_cookie(
-                                key=key, value=value, samesite="Strict", secure=False
-                            )
-                    return redirect_res
+                    if cookies:
+                        for key, value in cookies.items():
+                            if value:
+                                redirect_res.set_cookie(
+                                    key=key,
+                                    value=value,
+                                    samesite="Strict",
+                                    secure=False,
+                                )
+                        return redirect_res
     except FoundryInstance.DoesNotExist:
         messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))

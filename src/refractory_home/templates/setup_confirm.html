@@ -1,0 +1,24 @@
+{% extends "_foundry_portal_base.html" %}
+{% load static %}
+{% load instance_permissions %}
+
+{% block title %}Confirm Return to Setup{% endblock %}
+
+{% block content %}
+<!-- Active Worlds Section -->
+<section class="panel main-panel" id="active-worlds">
+    {% if user|can_manage:instance %}
+        <h2>Confirm Action</h2>
+        <form action="{% url 'instance_admin_login' instance.instance_slug %}" method="post">
+            {% csrf_token %}
+            <button type="submit"><p>Confirm and Continue to Setup</p></button>
+        </form>
+    {% else %}
+        <h2>Unauthorized</h2>
+        <p>You do not have permission to return this instance to setup!</p>
+        <form action="{{instance.user_facing_base_url}}" method="get">
+            <button type="submit"><p>Return to Instance Home</p></button>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

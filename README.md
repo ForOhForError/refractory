@@ -34,7 +34,10 @@ Initial Release:
 - [X] Version/Release Management and Corresponding Pages
 - [X] Instance Management and Corresponding Pages
 - [ ] Invite Management and Corresponding Pages
-- [ ] User + Group Management and Corresponding Pages
+- [X] Player/GM Registration
+- [X] Group Management
+- [ ] Instance Configuration Button
+- [ ] Basic User and Player Management (delete/disable/password reset without admin panel?)
 - [X] Action for releasing container images to a registry
 
 Nice-to-haves:

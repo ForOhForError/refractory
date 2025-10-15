@@ -63,7 +63,7 @@ def rewrite_element_with_template(
         django_parse = TemplateOverwriter()
         context = {}
         if foundry_instance:
-            context["slug"] = foundry_instance.instance_slug
+            context["instance"] = foundry_instance
         django_rendered = render_to_string(django_template_name, context)
         django_parse.feed(django_rendered)
         remaining_elements = join_form.search("h2", {}, limit_depth=0)  # header
@@ -92,7 +92,7 @@ def make_setup_rewrite_rule(*search_args, **search_kwargs):
     def rewrite_rule(input_body, instance):
         return rewrite_element_with_template(
             input_body,
-            "injected_login_button.html",
+            "injected_admin_login.html",
             *search_args,
             foundry_instance=instance,
             **search_kwargs,
@@ -103,7 +103,7 @@ def make_setup_rewrite_rule(*search_args, **search_kwargs):
 
 def make_overwrite_rule(django_template_name: str):
     def overwrite_entirely(_, instance):
-        return render_to_string(django_template_name, {"slug": instance.instance_slug})
+        return render_to_string(django_template_name, {"instance": instance})
 
     return overwrite_entirely
 
@@ -118,12 +118,12 @@ REWRITE_RULES = {
     ),  # v11
     "templates/setup/parts/join-form.hbs": make_overwrite_rule(
         "injected_login_button.html"
-    ),  # v12
+    ),  # v12+
     # Admin Auth
-    "templates/setup/setup-authentication.html": make_overwrite_rule(
-        "injected_login_button.html"
-    ),
-    "templates/setup/setup-authentication.hbs": make_overwrite_rule(
-        "injected_login_button.html"
+    "templates/setup/join-setup.html": make_setup_rewrite_rule(
+        "div", {"class": "join-form"}
+    ),  # v11
+    "templates/setup/parts/join-setup.hbs": make_overwrite_rule(
+        "injected_admin_login.html"
     ),  # v12
 }
