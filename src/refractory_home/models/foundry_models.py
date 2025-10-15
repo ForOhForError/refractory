@@ -142,6 +142,50 @@ class FoundryInstance(models.Model):
         else:
             return cls.objects.none()
 
+    def user_can_view(self, user):
+        if user.is_superuser:
+            return True
+        elif user.is_authenticated:
+            if self.view_group == None:
+                return True
+            else:
+                return self.view_group in user.groups.all()
+        else:
+            return False
+
+    def user_can_register(self, user):
+        if user.is_superuser:
+            return True
+        elif user.is_authenticated:
+            if self.access_group == None:
+                return True
+            else:
+                return self.access_group in user.groups.all()
+        else:
+            return False
+
+    def user_can_register_gms(self, user):
+        if user.is_superuser:
+            return True
+        elif user.is_authenticated:
+            if self.gm_group == None:
+                return False
+            else:
+                return self.gm_group in user.groups.all()
+        else:
+            return False
+
+    def user_can_manage(self, user):
+        if user.is_superuser:
+            return True
+        elif user.is_authenticated:
+            if self.manage_group == None:
+                return False
+            else:
+                return self.manage_group in user.groups.all()
+        else:
+            return False
+
     @classmethod
     def synch_to_refractory_hosting(cls):
         for instance in cls.objects.exclude(foundry_license=None):
@@ -244,7 +288,7 @@ class FoundryInstance(models.Model):
                                 managed_gm=False, instance=self, world_id=world_id
                             ):
                                 vtt_user = user_dict.get(re_user.user_id)
-                                if vtt_user:
+                                if re_user.user_id and vtt_user:
                                     vtt_user_name = vtt_user.get("name")
                                     if vtt_user_name:
                                         re_user.user_name = vtt_user_name
@@ -617,6 +661,10 @@ class FoundryInstance(models.Model):
         return self.get_join_info().get("world", {}).get("id")
 
     @property
+    def active_world_name(self) -> str:
+        return self.get_join_info().get("world", {}).get("title")
+
+    @property
     def active_background_url(self) -> str:
         join_info = self.get_join_info()
         join_bg = join_info.get("world", {}).get("background")
@@ -847,9 +895,14 @@ class FoundryLicense(models.Model):
                     ).save()
 
 
+class FoundryRole(models.IntegerChoices):
+    PLAYER = 1
+    GM = 4
+
+
 class ManagedFoundryUser(models.Model):
     user_name = models.CharField(max_length=255, default="")
-    user_id = models.CharField(max_length=255, default="")
+    user_id = models.CharField(max_length=255, blank=True, default="")
     user_password = models.CharField(max_length=64, default=generate_default_password)
     world_id = models.CharField(max_length=255, default="")
     instance = models.ForeignKey(FoundryInstance, on_delete=models.CASCADE)
@@ -857,6 +910,7 @@ class ManagedFoundryUser(models.Model):
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
     )
     managed_gm = models.BooleanField(default=False)
+    initial_role = models.IntegerField(choices=FoundryRole, default=FoundryRole.PLAYER)
 
     def get_create_message(self) -> typing.Tuple[str, dict]:
         message_data = {
@@ -866,7 +920,7 @@ class ManagedFoundryUser(models.Model):
                 "data": [
                     {
                         "name": self.user_name,
-                        "role": 1,
+                        "role": self.initial_role,
                         "_id": None,
                         "password": self.user_password,
                         "avatar": None,

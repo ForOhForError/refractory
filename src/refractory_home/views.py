@@ -1,3 +1,4 @@
+import logging
 import os
 import zipfile
 from io import BytesIO
@@ -12,9 +13,9 @@ from django.contrib.auth import login, authenticate, get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import Group
-from django.contrib.auth.views import LoginView, RedirectURLMixin
+from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -39,6 +40,7 @@ from refractory_home.models import (
     ManagedFoundryUser,
     FoundryInvite,
 )
+from refractory_home.models.foundry_models import FoundryRole
 from web_interaction.foundry_interaction import (
     FOUNDRY_USERNAME_COOKIE,
     FOUNDRY_SESSION_COOKIE,
@@ -432,6 +434,94 @@ def download_instance_backup(request, instance_slug):
         return redirect(reverse("panel"))
     messages.error(request, _("Download failed."))
     return redirect(reverse("panel"))
+
+
+class ManagedUserCreationForm(forms.Form):
+    user_name = forms.CharField(label="Username", max_length=255)
+    is_gm = forms.BooleanField(label="Register as GM", required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance = None
+
+    def is_valid(self) -> bool:
+        valid = self.instance != None and self.instance.active_world_id != None
+        return super().is_valid() if valid else False
+
+    def save(self, commit=True):
+        if self.instance:
+            world_id = self.instance.active_world_id
+        else:
+            world_id = None
+        user = ManagedFoundryUser(
+            user_name=self.cleaned_data.get("user_name"),
+            user_id="a",
+            initial_role=FoundryRole.GM
+            if self.cleaned_data.get("is_gm")
+            else FoundryRole.PLAYER,
+            instance=self.instance,
+            world_id=world_id,
+        )
+        if commit:
+            user.save()
+        return user
+
+
+class RegisterUserView(FormView, UserPassesTestMixin):
+    model = ManagedFoundryUser
+    form_class = ManagedUserCreationForm
+    template_name = "register_user.html"
+
+    def get_success_url(self) -> str:
+        instance = self.get_instance()
+        if instance:
+            return reverse_lazy("vtt_choose_user", args=[instance.instance_slug])
+        else:
+            return reverse_lazy("panel")
+
+    def get_instance(self):
+        try:
+            return FoundryInstance.objects.get(
+                instance_slug=self.kwargs.get("instance_slug")
+            )
+        except FoundryInstance.DoesNotExist:
+            return None
+
+    def test_func(self):
+        instance = self.get_instance()
+        if instance:
+            return instance.user_can_register(
+                self.request.user
+            ) or instance.user_can_register_gms(self.request.user)
+        return False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Register Player")
+        context["submit_text"] = _("Register")
+        context["instance"] = self.get_instance()
+        context["user"] = self.request.user
+        return context
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.owner = self.request.user
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_form(self):
+        form = super().get_form()
+        try:
+            form.instance = FoundryInstance.objects.get(
+                instance_slug=self.kwargs.get("instance_slug")
+            )  # type: ignore
+            form.fields["is_gm"].disabled = not form.instance.user_can_register_gms(
+                self.request.user
+            )  # type: ignore
+        except FoundryInstance.DoesNotExist:
+            pass
+        return form
 
 
 @login_required

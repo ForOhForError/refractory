@@ -270,6 +270,8 @@ a:hover
     padding: 1rem;
     text-shadow: 1px 1px 4px black;
     background: linear-gradient(transparent 0%, rgba(0, 0, 0, 0.5) 25%, rgba(0, 0, 0, 0.5) 75%, transparent 100%);
+    text-wrap: auto;
+    max-height: 2em;
 }
 .world-card h3::after {
     display: block;

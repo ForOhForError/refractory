@@ -15,6 +15,7 @@ from .views import (
     GroupUpdateView,
     GroupListView,
     GroupCreateView,
+    RegisterUserView,
     activate_instance,
     activate_world,
     download_instance_backup,
@@ -70,6 +71,11 @@ urlpatterns = [
         "instances/<slug:instance_slug>/activate/",
         activate_instance,
         name="activate_instance",
+    ),
+    path(
+        "instances/<slug:instance_slug>/register/",
+        RegisterUserView.as_view(),
+        name="register_instance_user",
     ),
     path(
         "instances/<slug:instance_slug>/admin_login/",

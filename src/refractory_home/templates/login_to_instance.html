@@ -1,5 +1,6 @@
 {% extends "_foundry_portal_base.html" %}
 {% load static %}
+{% load instance_permissions %}
 
 {% block title %}Select a User{% endblock %}
 
@@ -15,14 +16,17 @@
             </form>
         {% endfor %}
     </div>
-    {% if user.is_staff %}
+    <hr>
+    {% if user|can_access:instance %}
+        <form action="{% url 'register_instance_user' instance.instance_slug %}" method="get">
+            {% csrf_token %}
+            <button type="submit"><p>Register New Player</p></button>
+        </form>
+    {% endif %}
+    {% if user|can_manage:instance %}
         <form action="{% url 'instance_admin_login' instance.instance_slug %}" method="post">
             {% csrf_token %}
             <button type="submit"><p>Return to Setup</p></button>
-        </form>
-        <form action="{% url 'managed_admin_login' instance.instance_slug %}" method="post">
-            {% csrf_token %}
-            <button type="submit"><p>Login as Managed GM</p></button>
         </form>
     {% endif %}
 </section>

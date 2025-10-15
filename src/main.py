@@ -11,24 +11,21 @@ from web_server import RefractoryServer
 LOGGER = logging.getLogger("main")
 
 
-class LogObserver(FileLogObserver):
+class LogObserver(log.PythonLoggingObserver):
     def emit(self, eventDict):
-        text = textFromEventDict(eventDict)
-        if text is None:
-            return
-        util.untilConcludes(self.write, text + "\n")
-        util.untilConcludes(self.flush)
+        pass
 
 
 def start_log():
-    o = LogObserver(sys.stdout)
+    o = LogObserver()
     log.startLoggingWithObserver(o.emit)
 
 
 def main():
-    LOGGER.info("Running Refractory Server on port", SERVER_PORT)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "refractory.settings")
     logging.basicConfig(level=logging.INFO)
+    start_log()
+    LOGGER.info(f"Running Refractory Server on port {SERVER_PORT}")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "refractory.settings")
     RefractoryServer.get_server().run(port=SERVER_PORT)
 
 
