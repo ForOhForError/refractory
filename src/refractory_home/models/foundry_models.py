@@ -391,7 +391,7 @@ class FoundryInstance(models.Model):
     def queue_world_activate(self, world_id):
         RefractoryServer.get_server().queue_and_dispatch(self.activate_world, world_id)
 
-    def queue_instance_activer(self):
+    def queue_instance_activate(self):
         RefractoryServer.get_server().queue_and_dispatch(self.activate)
 
     def activate_world(self, world_id, force=False) -> bool:
@@ -847,7 +847,7 @@ foundry_license_validator = RegexValidator(
 
 class FoundryLicense(models.Model):
     license_key = models.CharField(
-        max_length=29, validators=[foundry_license_validator]
+        max_length=29, validators=[foundry_license_validator], unique=True
     )
     license_name = models.CharField(max_length=255, default="")
     instance = models.OneToOneField(
@@ -886,9 +886,11 @@ class FoundryLicense(models.Model):
         with requests.Session() as rsession:
             rsession.cookies.update({"sessionid": foundry_session})
             licenses = foundry_interaction.get_licenses(rsession, foundry_username)
-            for license_obj in licenses:
+            for license_ix, license_obj in enumerate(licenses):
                 license_key = license_obj.get("license_key")
-                license_name = license_obj.get("license_name", "imported license")
+                license_name = license_obj.get("license_name", "").strip()
+                if not license_name:
+                    license_name = f"{foundry_username} License {license_ix + 1}"
                 if not FoundryLicense.objects.filter(license_key=license_key).exists():
                     FoundryLicense(
                         license_key=license_key, license_name=license_name

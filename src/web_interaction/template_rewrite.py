@@ -125,5 +125,12 @@ REWRITE_RULES = {
     ),  # v11
     "templates/setup/parts/join-setup.hbs": make_overwrite_rule(
         "injected_admin_login.html"
-    ),  # v12
+    ),  # v12+
+    # Setup Auth
+    "templates/setup/setup-authentication.html": make_setup_rewrite_rule(
+        "form", {"class": "app"}, limit_matches=1
+    ),  # v8-10
+    "templates/setup/setup-authentication.hbs": make_overwrite_rule(
+        "injected_admin_login.html"
+    ),  # v11+
 }

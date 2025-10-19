@@ -83,7 +83,7 @@ def foundry_site_login(username, password, resp=None):
         canon_username = login(rsession, tok, username, password)
         if canon_username:
             cookies = rsession.cookies.get_dict()
-            session_id = cookies.get("sessionid")
+            session_id = cookies.get("sessionid", "")
 
             cookie_kwargs = {"secure": True, "httponly": True, "samesite": "Strict"}
             resp.set_signed_cookie(FOUNDRY_SESSION_COOKIE, session_id, **cookie_kwargs)

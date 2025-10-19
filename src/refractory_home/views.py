@@ -21,6 +21,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
+from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import (
     CreateView,
@@ -40,7 +41,7 @@ from refractory_home.models import (
     ManagedFoundryUser,
     FoundryInvite,
 )
-from refractory_home.models.foundry_models import FoundryRole
+from refractory_home.models.foundry_models import FoundryLicense, FoundryRole
 from web_interaction.foundry_interaction import (
     FOUNDRY_USERNAME_COOKIE,
     FOUNDRY_SESSION_COOKIE,
@@ -55,6 +56,23 @@ from web_interaction.foundry_interaction import (
 class SuperuserRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_superuser
+
+
+class FoundrySiteInteractionRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        if self.request.user.is_superuser:
+            foundry_user = self.request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE, None)
+            foundry_cookie = self.request.get_signed_cookie(
+                FOUNDRY_SESSION_COOKIE, None
+            )
+            return foundry_user and foundry_cookie
+        else:
+            return False
+
+    def get_foundry_site_info(self):
+        foundry_user = self.request.get_signed_cookie(FOUNDRY_USERNAME_COOKIE, None)
+        foundry_session = self.request.get_signed_cookie(FOUNDRY_SESSION_COOKIE, None)
+        return (foundry_user, foundry_session)
 
 
 class FoundryVTTLoginContextMixin:
@@ -104,24 +122,46 @@ class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListV
         return list(reversed(sorted(qs, key=lambda n: (n.version_tuple))))
 
 
-@login_required
-@staff_member_required
-@require_POST
-def download_version(request, version_string):
-    try:
-        foundry_version = FoundryVersion.objects.get(version_string=version_string)
-        foundry_session_id = request.get_signed_cookie(FOUNDRY_SESSION_COOKIE)
-        foundry_version.download_version(foundry_session_id)
-        messages.error(
-            request,
-            _("Downloaded Version %s (Build %s) successfully.")
-            % (foundry_version.version_string, foundry_version.build),
-        )
-    except FoundryVersion.DoesNotExist:
-        messages.error(request, _("Bad Version String"))
-    except Exception as ex:
-        raise ex
-    return redirect(reverse("version_list"))
+class DownloadVersion(View, FoundrySiteInteractionRequiredMixin):
+    def post(self, request, *args, version_string="", **kwargs):
+        try:
+            _, foundry_session_id = self.get_foundry_site_info()
+            foundry_version = FoundryVersion.objects.get(version_string=version_string)
+            foundry_version.download_version(foundry_session_id)
+            messages.error(
+                request,
+                _("Downloaded Version %s (Build %s) successfully.")
+                % (foundry_version.version_string, foundry_version.build),
+            )
+        except FoundryVersion.DoesNotExist:
+            messages.error(request, _("Bad Version String"))
+        except Exception as ex:
+            raise ex
+        return redirect(reverse("version_list"))
+
+
+#
+# License Management
+#
+
+
+class LicenseListView(SuperuserRequiredMixin, ListView):
+    model = FoundryLicense
+    paginate_by = 20
+    template_name = "license_list.html"
+    ordering = ["license_name"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        return context
+
+
+class ImportLicenses(View, FoundrySiteInteractionRequiredMixin):
+    def post(self, request):
+        foundry_user, foundry_session_id = self.get_foundry_site_info()
+        FoundryLicense.load_from_foundry_account(foundry_session_id, foundry_user)
+        return redirect(reverse("license_list"))
 
 
 #
@@ -405,35 +445,33 @@ class SignupFormView(FormView):
 #
 
 
-@login_required
-@staff_member_required
-@require_POST
-def download_instance_backup(request, instance_slug):
-    try:
-        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        buf = BytesIO()
+class DownloadInstanceBackup(View, SuperuserRequiredMixin):
+    def post(self, request, *args, instance_slug="", **kwargs):
+        try:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            buf = BytesIO()
 
-        archive = zipfile.ZipFile(buf, "w")
-        with buf:
-            whitelist_path = Path(os.path.join(instance.data_path, "Data"))
-            for root, dirs, files in os.walk(instance.data_path):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    if whitelist_path in Path(file_path).parents:
-                        archive.write(file_path, os.path.relpath(file_path))
-            archive.close()
-            resp = HttpResponse(
-                buf.getvalue(), content_type="application/x-zip-compressed"
-            )
-            resp["Content-Disposition"] = (
-                "attachment; filename=refractory_backup_%s.zip" % instance_slug
-            )
-            return resp
-    except FoundryInstance.DoesNotExist:
-        messages.error(request, _("Instance does not exist."))
+            archive = zipfile.ZipFile(buf, "w")
+            with buf:
+                whitelist_path = Path(os.path.join(instance.data_path, "Data"))
+                for root, dirs, files in os.walk(instance.data_path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        if whitelist_path in Path(file_path).parents:
+                            archive.write(file_path, os.path.relpath(file_path))
+                archive.close()
+                resp = HttpResponse(
+                    buf.getvalue(), content_type="application/x-zip-compressed"
+                )
+                resp["Content-Disposition"] = (
+                    "attachment; filename=refractory_backup_%s.zip" % instance_slug
+                )
+                return resp
+        except FoundryInstance.DoesNotExist:
+            messages.error(request, _("Instance does not exist."))
+            return redirect(reverse("panel"))
+        messages.error(request, _("Download failed."))
         return redirect(reverse("panel"))
-    messages.error(request, _("Download failed."))
-    return redirect(reverse("panel"))
 
 
 class ManagedUserCreationForm(forms.Form):
@@ -524,52 +562,22 @@ class RegisterUserView(FormView, UserPassesTestMixin, LoginRequiredMixin):
         return form
 
 
-@login_required
-def login_to_instance(request, instance_slug):
-    try:
-        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        world_id = instance.get_join_info(sync=True).get("world", {}).get("id")
-        managed_users = ManagedFoundryUser.objects.filter(
-            owner=request.user, instance=instance, world_id=world_id
-        )
-        return render(
-            request,
-            "login_to_instance.html",
-            {"users": managed_users, "instance": instance},
-        )
-    except FoundryInstance.DoesNotExist:
-        messages.error(request, _("Instance does not exist."))
-        return redirect(reverse("panel"))
-    messages.error(request, _("Login failed."))
-    return redirect(reverse("panel"))
-
-
-@login_required
-@require_POST
-def login_to_instance_as_user(request, instance_slug, user_ix):
-    try:
-        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        world_id = instance.active_world_id
-        managed_users = ManagedFoundryUser.objects.filter(
-            owner=request.user, instance=instance, world_id=world_id
-        )
-        if len(managed_users) > user_ix:
-            managed_user = managed_users[user_ix]
-            redirect_url, cookies = instance.vtt_login(managed_user)
-            if redirect_url:
-                redirect_res = redirect(redirect_url)
-                if cookies:
-                    for key, value in cookies.items():
-                        if value:
-                            redirect_res.set_cookie(
-                                key=key, value=value, samesite="Strict", secure=False
-                            )
-                    return redirect_res
-    except FoundryInstance.DoesNotExist:
-        messages.error(request, _("Instance does not exist."))
-        return redirect(reverse("panel"))
-    messages.error(request, _("Login failed."))
-    return redirect(reverse("panel"))
+class InstanceLoginView(View, LoginRequiredMixin):
+    def get(self, request, *args, instance_slug="", **kwargs):
+        try:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            world_id = instance.get_join_info(sync=True).get("world", {}).get("id")
+            managed_users = ManagedFoundryUser.objects.filter(
+                owner=request.user, instance=instance, world_id=world_id
+            )
+            return render(
+                request,
+                "login_to_instance.html",
+                {"users": managed_users, "instance": instance},
+            )
+        except FoundryInstance.DoesNotExist:
+            messages.error(request, _("Instance does not exist."))
+            return redirect(reverse("panel"))
 
 
 class ConfirmSetupView(TemplateView, LoginRequiredMixin):
@@ -590,54 +598,16 @@ class ConfirmSetupView(TemplateView, LoginRequiredMixin):
         return context
 
 
-@login_required
-@require_POST
-def login_to_instance_as_admin(request, instance_slug):
-    try:
-        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        if instance.user_can_manage(request.user):
-            if instance.instance_state == FoundryState.JOIN:
-                instance.deactivate_world()
-            if instance.instance_state == FoundryState.SETUP:
-                redirect_url, cookies = instance.admin_login()
-                if redirect_url:
-                    redirect_res = redirect(redirect_url)
-                    if cookies:
-                        for key, value in cookies.items():
-                            if value:
-                                redirect_res.set_cookie(
-                                    key=key,
-                                    value=value,
-                                    samesite="Strict",
-                                    secure=False,
-                                )
-                        return redirect_res
-            else:
-                messages.error(request, _("Bad Instance State"))
-        else:
-            return redirect(
-                reverse("confirm_instance_setup", args=[instance.instance_slug])
-            )
-    except FoundryInstance.DoesNotExist:
-        messages.error(request, _("Instance does not exist."))
-        return redirect(reverse("panel"))
-    messages.error(request, _("Login failed."))
-    return redirect(reverse("panel"))
-
-
-@login_required
-@staff_member_required
-@require_POST
-def login_to_instance_as_managed_gm(request, instance_slug):
-    try:
-        instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-        if instance.instance_state == FoundryState.JOIN:
+class InstanceUserLogin(View, LoginRequiredMixin):
+    def post(self, request, *args, instance_slug="", user_ix=0, **kwargs):
+        try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            world_id = instance.active_world_id
             managed_users = ManagedFoundryUser.objects.filter(
-                managed_gm=True, instance=instance, world_id=instance.active_world_id
+                owner=request.user, instance=instance, world_id=world_id
             )
-            if len(managed_users):
-                managed_user = managed_users.first()
+            if len(managed_users) > user_ix:
+                managed_user = managed_users[user_ix]
                 redirect_url, cookies = instance.vtt_login(managed_user)
                 if redirect_url:
                     redirect_res = redirect(redirect_url)
@@ -651,41 +621,101 @@ def login_to_instance_as_managed_gm(request, instance_slug):
                                     secure=False,
                                 )
                         return redirect_res
-    except FoundryInstance.DoesNotExist:
-        messages.error(request, _("Instance does not exist."))
+        except FoundryInstance.DoesNotExist:
+            messages.error(request, _("Instance does not exist."))
+            return redirect(reverse("panel"))
+        messages.error(request, _("Login failed."))
         return redirect(reverse("panel"))
-    messages.error(request, _("Login failed."))
-    return redirect(reverse("panel"))
 
 
-@login_required
-@require_POST
-def activate_world(request, instance_slug, world_id):
-    if request.method == "POST":
+class InstanceSetupLogin(View, LoginRequiredMixin):
+    def post(self, request, *args, instance_slug="", **kwargs):
+        try:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            if instance.user_can_manage(request.user):
+                if instance.instance_state == FoundryState.JOIN:
+                    instance.deactivate_world()
+                if instance.instance_state == FoundryState.SETUP:
+                    redirect_url, cookies = instance.admin_login()
+                    if redirect_url:
+                        redirect_res = redirect(redirect_url)
+                        if cookies:
+                            for key, value in cookies.items():
+                                if value:
+                                    redirect_res.set_cookie(
+                                        key=key,
+                                        value=value,
+                                        samesite="Strict",
+                                        secure=False,
+                                    )
+                            return redirect_res
+                else:
+                    messages.error(request, _("Bad Instance State"))
+            else:
+                return redirect(
+                    reverse("confirm_instance_setup", args=[instance.instance_slug])
+                )
+        except FoundryInstance.DoesNotExist:
+            messages.error(request, _("Instance does not exist."))
+            return redirect(reverse("panel"))
+        messages.error(request, _("Login failed."))
+        return redirect(reverse("panel"))
+
+
+class InstanceManagedGMLogin(SuperuserRequiredMixin, View):
+    def post(self, request, *args, instance_slug="", **kwargs):
+        try:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            if instance.instance_state == FoundryState.JOIN:
+                instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+                managed_users = ManagedFoundryUser.objects.filter(
+                    managed_gm=True,
+                    instance=instance,
+                    world_id=instance.active_world_id,
+                )
+                if len(managed_users):
+                    managed_user = managed_users.first()
+                    redirect_url, cookies = instance.vtt_login(managed_user)
+                    if redirect_url:
+                        redirect_res = redirect(redirect_url)
+                        if cookies:
+                            for key, value in cookies.items():
+                                if value:
+                                    redirect_res.set_cookie(
+                                        key=key,
+                                        value=value,
+                                        samesite="Strict",
+                                        secure=False,
+                                    )
+                            return redirect_res
+        except FoundryInstance.DoesNotExist:
+            messages.error(request, _("Instance does not exist."))
+            return redirect(reverse("panel"))
+        messages.error(request, _("Login failed."))
+        return redirect(reverse("panel"))
+
+
+class ActivateWorld(View, LoginRequiredMixin):
+    def post(self, request, *args, instance_slug="", world_id="", **kwargs):
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
             instance.queue_world_activate(world_id)
-            # if world_launched:
-            #     messages.info(request, _("World activated."))
-            # else:
             messages.info(request, _("Activating World."))
         except FoundryInstance.DoesNotExist:
             messages.error(request, _("Instance does not exist."))
-    return redirect(reverse("panel"))
+        return redirect(reverse("panel"))
 
 
-@login_required
-@require_POST
-def activate_instance(request, instance_slug):
-    if request.method == "POST":
+class ActivateInstance(View, LoginRequiredMixin):
+    def post(self, request, *args, instance_slug="", **kwargs):
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            instance.queue_instance_activer()
+            instance.queue_instance_activate()
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
-    messages.info(
-        request,
-        _("Activated instance %(instance_name)s")
-        % {"instance_name": instance.display_name},
-    )
-    return redirect(reverse("panel"))
+        messages.info(
+            request,
+            _("Activated instance %(instance_name)s")
+            % {"instance_name": instance.display_name},
+        )
+        return redirect(reverse("panel"))

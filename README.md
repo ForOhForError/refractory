@@ -36,9 +36,10 @@ Initial Release:
 - [ ] Invite Management and Corresponding Pages
 - [X] Player/GM Registration
 - [X] Group Management
-- [ ] Instance Configuration Button
+- [X] Instance Configuration Button
 - [ ] Basic User and Player Management (delete/disable/password reset without admin panel?)
 - [X] Action for releasing container images to a registry
+- [ ] Validate basic setup for reasonable major version range (9-14+ at least, 8 if possible, lower is a stretch)
 
 Nice-to-haves:
 

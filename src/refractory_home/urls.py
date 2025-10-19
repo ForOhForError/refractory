@@ -17,14 +17,16 @@ from .views import (
     GroupCreateView,
     RegisterUserView,
     ConfirmSetupView,
-    activate_instance,
-    activate_world,
-    download_instance_backup,
-    download_version,
-    login_to_instance,
-    login_to_instance_as_admin,
-    login_to_instance_as_managed_gm,
-    login_to_instance_as_user,
+    ActivateInstance,
+    ActivateWorld,
+    DownloadInstanceBackup,
+    DownloadVersion,
+    InstanceLoginView,
+    InstanceSetupLogin,
+    InstanceManagedGMLogin,
+    InstanceUserLogin,
+    LicenseListView,
+    ImportLicenses,
 )
 
 urlpatterns = [
@@ -44,12 +46,12 @@ urlpatterns = [
     path("panel/", PanelView.as_view(), name="panel"),
     path(
         "instances/<slug:instance_slug>/vtt_login/",
-        login_to_instance,
+        InstanceLoginView.as_view(),
         name="vtt_choose_user",
     ),
     path(
         "instances/<slug:instance_slug>/vtt_login/<int:user_ix>/",
-        login_to_instance_as_user,
+        InstanceUserLogin.as_view(),
         name="vtt_login",
     ),
     path(
@@ -70,7 +72,7 @@ urlpatterns = [
     path("create-group/", GroupCreateView.as_view(), name="group_create"),
     path(
         "instances/<slug:instance_slug>/activate/",
-        activate_instance,
+        ActivateInstance.as_view(),
         name="activate_instance",
     ),
     path(
@@ -85,17 +87,18 @@ urlpatterns = [
     ),
     path(
         "instances/<slug:instance_slug>/admin_login/",
-        login_to_instance_as_admin,
+        InstanceSetupLogin.as_view(),
         name="instance_admin_login",
     ),
-    path(
-        "instances/<slug:instance_slug>/gm_login/",
-        login_to_instance_as_managed_gm,
-        name="managed_admin_login",
-    ),
+    # Managed GM Login, no longer needed
+    # path(
+    #     "instances/<slug:instance_slug>/gm_login/",
+    #     InstanceManagedGMLogin.as_view(),
+    #     name="managed_admin_login",
+    # ),
     path(
         "instances/<slug:instance_slug>/activate/<slug:world_id>/",
-        activate_world,
+        ActivateWorld.as_view(),
         name="activate_world",
     ),
     path("instances/", InstanceListView.as_view(), name="instance_list"),
@@ -112,7 +115,7 @@ urlpatterns = [
     path("create-instance/", InstanceCreateView.as_view(), name="instance_create"),
     path(
         "instances/<slug:instance_slug>/download-backup/",
-        download_instance_backup,
+        DownloadInstanceBackup.as_view(),
         name="instance_download_backup",
     ),
     path(
@@ -122,7 +125,17 @@ urlpatterns = [
     ),
     path(
         "versions/download/<str:version_string>",
-        download_version,
+        DownloadVersion.as_view(),
         name="version_download",
+    ),
+    path(
+        "licenses/",
+        LicenseListView.as_view(),
+        name="license_list",
+    ),
+    path(
+        "licenses/import/",
+        ImportLicenses.as_view(),
+        name="license_import",
     ),
 ]

@@ -7,16 +7,18 @@
 {% block content %}
 <!-- Active Worlds Section -->
 <section class="panel main-panel" id="active-worlds">
-    <h2>Select A User</h2>
-    <div>
-        {% for user in users %}
-            <form action="{% url 'vtt_login' instance.instance_slug forloop.counter0 %}" method="post">
-                {% csrf_token %}
-                <button type="submit"><p>{{user.user_name}}</p></button>
-            </form>
-        {% endfor %}
-    </div>
-    <hr>
+    {% if users %}
+        <h2>Select A User</h2>
+        <div>
+            {% for user in users %}
+                <form action="{% url 'vtt_login' instance.instance_slug forloop.counter0 %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit"><p>{{user.user_name}}</p></button>
+                </form>
+            {% endfor %}
+        </div>
+        <hr>
+    {% endif %}
     {% if user|can_access:instance %}
         <form action="{% url 'register_instance_user' instance.instance_slug %}" method="get">
             {% csrf_token %}
