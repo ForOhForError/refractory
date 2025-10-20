@@ -1,12 +1,13 @@
-{% extends '_foundry_portal_base.html' %}
+{% extends '_manage_base.html' %}
 {% load i18n %}
 
-{% block title %}Refractory: Sign up{% endblock %}
+{% block title %}Confirm Instance Deletion{% endblock %}
 
 {% block content %}
 <section class="panel thin-panel" id="login-panel">
     <div class="login-panel">
-        <h2>Sign Up</h2>
+        <h2>Confirm Instance Deletion</h2>
+        <p>Are you sure you want to delete the instance '{{object.instance_name}}'?</p>
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
@@ -19,7 +20,14 @@
                     <small>{{ field.errors }}</small> 
                 {% endif %}
             {% endfor %}
-            <input type="submit" value="Submit">
+            <input type="submit" value="{{submit_text}}">
+        </form>
+        <form action="{% url 'instance_download_backup' object.instance_slug %}" target="_blank" method="post">
+            {% csrf_token %}
+            <button type="submit">{% translate "Download Backup" %}</button>
+        </form>
+        <form action="{% url 'instance_update' object.instance_slug %}" method="get">
+            <button type="submit">{% translate "Back" %}</button>
         </form>
     </div>
 </section>

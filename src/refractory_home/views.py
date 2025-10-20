@@ -230,12 +230,42 @@ class InstanceUpdateView(SuperuserRequiredMixin, UpdateView):
         return form
 
 
+def get_confirm_delete_form(
+    string_to_match: str = "Good Idea",
+    label: str = "Confirm Deletion",
+    help_text: str = 'To confirm deletion, enter "Good Idea".',
+):
+    class ConfirmDeleteForm(forms.Form):
+        confirm = forms.CharField(required=True, label=label, help_text=help_text)
+
+        def clean_confirm(self):
+            confirm_val = self.cleaned_data.get("confirm")
+            if confirm_val != string_to_match:
+                raise forms.ValidationError(
+                    "Deletion confirmation did not match expected value."
+                )
+            return confirm_val
+
+    return ConfirmDeleteForm
+
+
 class InstanceDeleteView(SuperuserRequiredMixin, DeleteView):
     model = FoundryInstance
-    template_name = "instance_update.html"
+    template_name = "instance_delete.html"
     slug_field = "instance_slug"
     slug_url_kwarg = "instance_slug"
     success_url = reverse_lazy("instance_list")
+    form_class = get_confirm_delete_form()
+
+    def get_form_class(self):
+        instance = FoundryInstance.objects.get(
+            instance_slug=self.kwargs.get("instance_slug")
+        )
+        return get_confirm_delete_form(
+            string_to_match=instance.instance_name,
+            label="Confirm Instance Name",
+            help_text=f"Enter the instance name, '{instance.instance_name}', to confirm instance deletion.",
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

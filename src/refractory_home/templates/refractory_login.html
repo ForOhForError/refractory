@@ -11,12 +11,13 @@
         {% csrf_token %}
         {% for field in form %}
             <label for="{{ field.auto_id }}" class="form-field-label">{{ field.label }}</label>
+            {% if field.help_text %}<div class="tooltip"><b>[?]</b><span class="tooltiptext">{{ field.help_text }}</span></div>{% endif %}
             <div class="mt-2">
-	        	  {{ field }}
-	        	</div>
+                {{ field }}
+            </div>
             {% if field.errors %}
-	        		<small>{{ field.errors }}</small> 
-	        	{% endif %}
+                <small>{{ field.errors }}</small> 
+            {% endif %}
         {% endfor %}
         <div>
           <button type="submit"><h2>Sign in</h2></button>
