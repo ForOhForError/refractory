@@ -1,12 +1,13 @@
-{% extends '_foundry_portal_base.html' %}
+{% extends '_manage_base.html' %}
 {% load i18n %}
 
-{% block title %}Create User Group{% endblock %}
+{% block title %}Confirm License Deletion{% endblock %}
 
 {% block content %}
 <section class="panel thin-panel" id="login-panel">
     <div class="login-panel">
-        <h2>Create License</h2>
+        <h2>Confirm License Deletion</h2>
+        <p>Are you sure you want to delete the license '{{ object.license_name }}'?</p>
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
@@ -21,7 +22,7 @@
             {% endfor %}
             <input type="submit" value="{{submit_text}}">
         </form>
-        <form action="{% url 'license_list' %}" method="get">
+        <form action="{% url 'license_update' object.id %}" method="get">
             <button type="submit">{% translate "Back" %}</button>
         </form>
     </div>

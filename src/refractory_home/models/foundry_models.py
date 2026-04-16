@@ -300,13 +300,26 @@ class FoundryInstance(models.Model):
                                             event, data=data, timeout=1
                                         )
                                     except TimeoutError:
+                                        logging.warning(
+                                            "Call to create user timed out. What happened?"
+                                        )
                                         user_response = {}
                                         continue
-                                    result = user_response.get("result", [None])[0]
-                                    if result:
-                                        vtt_user_id = result.get("_id")
-                                        re_user.user_id = vtt_user_id
-                                        re_user.save()
+                                    if user_response:
+                                        call_result_array = user_response.get(
+                                            "result", [None]
+                                        )
+                                        if len(call_result_array) == 0:
+                                            call_result_array = [None]
+                                        result = call_result_array[0]
+                                        if result:
+                                            vtt_user_id = result.get("_id")
+                                            re_user.user_id = vtt_user_id
+                                            re_user.save()
+                                        else:
+                                            logging.warning(
+                                                f"User creation failed for user {re_user.user_name}"
+                                            )
         except Exception as ex:
             logging.exception("sync failed")
 
@@ -896,6 +909,9 @@ class FoundryLicense(models.Model):
                         license_key=license_key, license_name=license_name
                     ).save()
 
+    def get_absolute_url(self):
+        return reverse("license_update", kwargs={"id": self.id})
+
 
 class FoundryRole(models.IntegerChoices):
     PLAYER = 1
@@ -915,32 +931,34 @@ class ManagedFoundryUser(models.Model):
     initial_role = models.IntegerField(choices=FoundryRole, default=FoundryRole.PLAYER)
 
     def get_create_message(self) -> typing.Tuple[str, dict]:
-        message_data = {
-            "type": "User",
-            "action": "create",
-            "operation": {
-                "data": [
-                    {
-                        "name": self.user_name,
-                        "role": self.initial_role,
-                        "_id": None,
-                        "password": self.user_password,
-                        "avatar": None,
-                        "character": None,
-                        "color": "#bf28cc",
-                        "pronouns": "",
-                        "hotbar": {},
-                        "permissions": {},
-                        "flags": {},
-                    }
-                ],
+        message_data = {"type": "User", "action": "create"}
+        create_data = [
+            {
+                "name": self.user_name,
+                "role": self.initial_role,
+                "_id": None,
+                "password": self.user_password,
+                "avatar": None,
+                "character": None,
+                "color": "#bf28cc",
+                "pronouns": "",
+                "hotbar": {},
+                "permissions": {},
+                "flags": {},
+            }
+        ]
+        if self.instance.version_tuple[0] > 11:
+            create_operation = {
+                "data": create_data,
                 "options": {"temporary": False, "renderSheet": False, "render": True},
                 "parent": None,
                 "modifiedTime": int(time.time()),
                 "render": True,
                 "renderSheet": False,
-            },
-        }
+            }
+            message_data["operation"] = create_operation
+        else:
+            message_data["data"] = create_data
         return "modifyDocument", message_data
 
 

@@ -8,11 +8,11 @@
         <h2>Licenses</h2>
         <ul>
             {% for license in object_list %}
-                <li><a href="{% url 'license_list' %}">{{ license.license_name }}</a></li>
+                <li><a href="{% url 'license_update' license.id %}">{{ license.license_name }}</a></li>
             {% empty %}
                 <li>No licenses yet.</li>
             {% endfor %}
-            <li><a href="{% url 'license_list' %}">Add License</a></li>
+            <li><a href="{% url 'license_create' %}">Add License</a></li>
             <form action="{% url 'license_import' %}" method="post">
                 {% csrf_token %}
                 <button type="submit"><p>Import Licenses with foundryvtt.com Login</p></button>

@@ -26,6 +26,9 @@ from .views import (
     InstanceManagedGMLogin,
     InstanceUserLogin,
     LicenseListView,
+    LicenseCreateView,
+    LicenseDeleteView,
+    LicenseUpdateView,
     ImportLicenses,
 )
 
@@ -132,6 +135,21 @@ urlpatterns = [
         "licenses/",
         LicenseListView.as_view(),
         name="license_list",
+    ),
+    path(
+        "create-license/",
+        LicenseCreateView.as_view(),
+        name="license_create",
+    ),
+    path(
+        "licenses/<int:id>/",
+        LicenseUpdateView.as_view(),
+        name="license_update",
+    ),
+    path(
+        "licenses/<int:id>/delete/",
+        LicenseDeleteView.as_view(),
+        name="license_delete",
     ),
     path(
         "licenses/import/",

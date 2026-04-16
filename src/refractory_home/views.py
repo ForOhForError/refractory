@@ -87,6 +87,30 @@ class FoundryVTTLoginContextMixin:
 
 
 #
+# Helper Classes/Functions
+#
+
+
+def get_confirm_delete_form(
+    string_to_match: str = "Good Idea",
+    label: str = "Confirm Deletion",
+    help_text: str = 'To confirm deletion, enter "Good Idea".',
+):
+    class ConfirmDeleteForm(forms.Form):
+        confirm = forms.CharField(required=True, label=label, help_text=help_text)
+
+        def clean_confirm(self):
+            confirm_val = self.cleaned_data.get("confirm")
+            if confirm_val != string_to_match:
+                raise forms.ValidationError(
+                    "Deletion confirmation did not match expected value."
+                )
+            return confirm_val
+
+    return ConfirmDeleteForm
+
+
+#
 # Front Page
 #
 
@@ -154,6 +178,58 @@ class LicenseListView(SuperuserRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["now"] = timezone.now()
+        return context
+
+
+class LicenseCreateView(SuperuserRequiredMixin, CreateView):
+    model = FoundryLicense
+    fields = ["license_name", "license_key"]
+    template_name = "license_create.html"
+    success_url = reverse_lazy("license_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Create Foundry License")
+        context["submit_text"] = _("Create")
+        return context
+
+
+class LicenseUpdateView(SuperuserRequiredMixin, UpdateView):
+    model = FoundryLicense
+    fields = ["license_name"]
+    template_name = "license_update.html"
+    slug_field = "id"
+    slug_url_kwarg = "id"
+    success_url = reverse_lazy("license_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Update License")
+        context["submit_text"] = _("Update")
+        return context
+
+
+class LicenseDeleteView(SuperuserRequiredMixin, DeleteView):
+    model = FoundryLicense
+    template_name = "license_delete.html"
+    slug_field = "id"
+    slug_url_kwarg = "id"
+    success_url = reverse_lazy("license_list")
+    form_class = forms.Form
+
+    def get_form_class(self):
+        return get_confirm_delete_form(
+            string_to_match="Remove License",
+            help_text="To confirm licence removal, enter 'Remove License'",
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Delete Foundry Instance")
+        context["submit_text"] = _("Delete")
         return context
 
 
@@ -228,25 +304,6 @@ class InstanceUpdateView(SuperuserRequiredMixin, UpdateView):
             download_status=FoundryVersion.DownloadStatus.DOWNLOADED
         )
         return form
-
-
-def get_confirm_delete_form(
-    string_to_match: str = "Good Idea",
-    label: str = "Confirm Deletion",
-    help_text: str = 'To confirm deletion, enter "Good Idea".',
-):
-    class ConfirmDeleteForm(forms.Form):
-        confirm = forms.CharField(required=True, label=label, help_text=help_text)
-
-        def clean_confirm(self):
-            confirm_val = self.cleaned_data.get("confirm")
-            if confirm_val != string_to_match:
-                raise forms.ValidationError(
-                    "Deletion confirmation did not match expected value."
-                )
-            return confirm_val
-
-    return ConfirmDeleteForm
 
 
 class InstanceDeleteView(SuperuserRequiredMixin, DeleteView):

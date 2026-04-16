@@ -30,7 +30,7 @@ though that instance will be automatically shut down before the license is moved
 Initial Release:
 
 - [X] Core Reverse Proxy and Login Management
-- [ ] License Management and Corresponding Pages
+- [X] License Management and Corresponding Pages
 - [X] Version/Release Management and Corresponding Pages
 - [X] Instance Management and Corresponding Pages
 - [ ] Invite Management and Corresponding Pages
