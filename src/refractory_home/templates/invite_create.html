@@ -1,12 +1,12 @@
 {% extends '_foundry_portal_base.html' %}
 {% load i18n %}
 
-{% block title %}Add License{% endblock %}
+{% block title %}Create Invite{% endblock %}
 
 {% block content %}
 <section class="panel thin-panel" id="login-panel">
     <div class="login-panel">
-        <h2>Add License</h2>
+        <h2>Create Invite</h2>
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
@@ -21,7 +21,7 @@
             {% endfor %}
             <input type="submit" value="{{submit_text}}">
         </form>
-        <form action="{% url 'license_list' %}" method="get">
+        <form action="{% url 'invite_list' %}" method="get">
             <button type="submit">{% translate "Back" %}</button>
         </form>
     </div>

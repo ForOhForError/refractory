@@ -480,6 +480,78 @@ class GroupUpdateView(SuperuserRequiredMixin, UpdateView):
 #
 
 
+class InviteListView(SuperuserRequiredMixin, ListView):
+    model = FoundryInvite
+    paginate_by = 20
+    template_name = "invite_list.html"
+    ordering = ["id"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        return context
+
+
+class InviteCreateView(SuperuserRequiredMixin, CreateView):
+    model = FoundryInvite
+    fields = ["invite_name", "uses", "assign_user_groups"]
+    template_name = "invite_create.html"
+    success_url = reverse_lazy("invite_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Create Invite")
+        context["submit_text"] = _("Create")
+        return context
+
+
+class InviteUpdateView(SuperuserRequiredMixin, UpdateView):
+    model = FoundryInvite
+    template_name = "invite_update.html"
+    slug_field = "id"
+    slug_url_kwarg = "id"
+    fields = ["invite_name", "invite_code", "uses", "assign_user_groups"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Update Invite")
+        context["submit_text"] = _("Update")
+        return context
+
+    def get_success_url(self):
+        if "invite_id" in self.kwargs:
+            invite_id = self.kwargs["invite_id"]
+            return reverse("invite_update", kwargs={"group_id": invite_id})
+        else:
+            return reverse("panel")
+
+
+class InviteDeleteView(SuperuserRequiredMixin, DeleteView):
+    model = FoundryInvite
+    template_name = "invite_delete.html"
+    slug_field = "id"
+    slug_url_kwarg = "id"
+    success_url = reverse_lazy("invite_list")
+    form_class = get_confirm_delete_form()
+
+    def get_form_class(self):
+        return get_confirm_delete_form()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["now"] = timezone.now()
+        context["header_text"] = _("Delete Invite")
+        context["submit_text"] = _("Delete")
+        return context
+
+
+#
+# Signup
+#
+
+
 class InviteCodeUserCreationForm(UserCreationForm):
     invite_code = forms.CharField(help_text="Invite Code")
 
@@ -499,11 +571,11 @@ class InviteCodeUserCreationForm(UserCreationForm):
         invite = FoundryInvite.objects.get(invite_code=invite_code)
         user = super(UserCreationForm, self).save(commit=False)
         user.set_password(self.cleaned_data["password1"])
-        for group in invite.assign_user_groups.all():
-            user.groups.add(group)
-        invite.use_invite()
         if commit:
             user.save()
+            for group in invite.assign_user_groups.all():
+                user.groups.add(group)
+            invite.use_invite()
         return user
 
 

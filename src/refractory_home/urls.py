@@ -30,6 +30,10 @@ from .views import (
     LicenseDeleteView,
     LicenseUpdateView,
     ImportLicenses,
+    InviteCreateView,
+    InviteListView,
+    InviteUpdateView,
+    InviteDeleteView,
 )
 
 urlpatterns = [
@@ -155,5 +159,25 @@ urlpatterns = [
         "licenses/import/",
         ImportLicenses.as_view(),
         name="license_import",
+    ),
+    path(
+        "invites/",
+        InviteListView.as_view(),
+        name="invite_list",
+    ),
+    path(
+        "create-invite/",
+        InviteCreateView.as_view(),
+        name="invite_create",
+    ),
+    path(
+        "invites/<int:id>/",
+        InviteUpdateView.as_view(),
+        name="invite_update",
+    ),
+    path(
+        "invites/<int:id>/delete/",
+        InviteDeleteView.as_view(),
+        name="invite_delete",
     ),
 ]

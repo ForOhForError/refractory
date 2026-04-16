@@ -33,7 +33,7 @@ Initial Release:
 - [X] License Management and Corresponding Pages
 - [X] Version/Release Management and Corresponding Pages
 - [X] Instance Management and Corresponding Pages
-- [ ] Invite Management and Corresponding Pages
+- [X] Invite Management and Corresponding Pages
 - [X] Player/GM Registration
 - [X] Group Management
 - [X] Instance Configuration Button

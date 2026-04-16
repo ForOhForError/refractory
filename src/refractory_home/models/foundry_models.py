@@ -970,6 +970,7 @@ def generate_random_slug(length=20) -> str:
 
 
 class FoundryInvite(models.Model):
+    invite_name = models.CharField(max_length=255, default="Invite")
     invite_code = models.CharField(
         max_length=64,
         null=False,
@@ -977,11 +978,14 @@ class FoundryInvite(models.Model):
         validators=[validate_unicode_slug],
         unique=True,
     )
-    uses = models.PositiveSmallIntegerField(default=1, null=False)
+    uses = models.PositiveSmallIntegerField(
+        default=1,
+        null=False,
+        help_text="Number of uses this invite has remaining. Set to 0 for infinite uses.",
+    )
     assign_user_groups = models.ManyToManyField(
         Group,
         blank=True,
-        null=True,
         help_text="Groups that will be assigned to users generated from this invite",
     )
 
