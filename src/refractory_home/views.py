@@ -149,10 +149,10 @@ class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListV
 class DownloadVersion(View, FoundrySiteInteractionRequiredMixin):
     def post(self, request, *args, version_string="", **kwargs):
         try:
-            _, foundry_session_id = self.get_foundry_site_info()
+            foundry_username, foundry_session_id = self.get_foundry_site_info()
             foundry_version = FoundryVersion.objects.get(version_string=version_string)
             foundry_version.download_version(foundry_session_id)
-            messages.error(
+            messages.info(
                 request,
                 _("Downloaded Version %s (Build %s) successfully.")
                 % (foundry_version.version_string, foundry_version.build),
