@@ -402,10 +402,12 @@ class FoundryInstance(models.Model):
             return True
 
     def queue_world_activate(self, world_id):
-        RefractoryServer.get_server().queue_and_dispatch(self.activate_world, world_id)
+        task_id = RefractoryServer.get_server().queue_and_dispatch(self.activate_world, world_id)
+        return task_id
 
     def queue_instance_activate(self):
-        RefractoryServer.get_server().queue_and_dispatch(self.activate)
+        task_id = RefractoryServer.get_server().queue_and_dispatch(self.activate)
+        return task_id
 
     def activate_world(self, world_id, force=False) -> bool:
         # Try to activate if we're not already activated
@@ -726,15 +728,16 @@ class FoundryInstance(models.Model):
             if not session_id:
                 session.get(login_url)
                 session_id = session.cookies.get("session", None)
+            logging.info(f"got sid {session_id}")
             if session_id:
                 connect_url = f"{base_url.replace('http', 'ws')}?session={session_id}"
                 sio = socketio.SimpleClient(
-                    logger=log_internals, engineio_logger=log_internals
+                    logger=log_internals, engineio_logger=log_internals, http_session=session
                 )
                 sio.connect(
                     connect_url,
                     socketio_path=self.socketio_path,
-                    transports=["websocket"],
+                    transports=["websocket"]
                 )
                 return sio
         return None

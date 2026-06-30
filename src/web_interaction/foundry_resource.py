@@ -1,4 +1,5 @@
 import json
+import logging
 import os.path
 import subprocess
 import urllib.parse
@@ -51,9 +52,16 @@ class BlackholeResource(Resource):
 
 
 def build_websocket_reverse_proxy_client_protocol(
-    server_instance, override_client_payload=None
+    server_instance, override_client_payload=None, headers={}
 ):
     class WebsocketReverseProxyClientProtocol(WebSocketClientProtocol):
+        def onConnecting(self, *args, **kwargs):
+            # forward cookies, since the foundry server is expecting the client ID on the ws cookie in version v14.352+
+            cookies = headers.get("cookie")
+            if cookies:
+                self.factory.headers["Cookie"] = cookies
+            resp = super().onConnecting(*args,**kwargs)
+        
         def onOpen(self):
             server_instance.set_client(self)
 
@@ -67,6 +75,7 @@ def build_websocket_reverse_proxy_client_protocol(
                 payload = (
                     override_client_payload(pkt, response_to=orig_pkt).encode().encode()
                 )
+            print(">",payload)
             server_instance.sendMessage(payload, isBinary=isBinary)
 
         def onClose(self, wasClean, code, reason):
@@ -82,8 +91,6 @@ def build_websocket_reverse_proxy_protocol(
         def onConnect(self, request):
             self.params = request.params
             self.sent_messages = {}
-
-        def onOpen(self):
             url = (
                 addr
                 + "?"
@@ -93,9 +100,12 @@ def build_websocket_reverse_proxy_protocol(
             )
             factory = WebSocketClientFactory(url)
             factory.protocol = build_websocket_reverse_proxy_client_protocol(
-                self, override_client_payload=override_client_payload
+                self, override_client_payload=override_client_payload, headers=request.headers
             )
             reactor.connectTCP(host, port, factory)
+
+        def onOpen(self):
+            pass
 
         def set_client(self, client_instance):
             self.client_instance = client_instance

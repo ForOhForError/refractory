@@ -20,6 +20,7 @@ from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.decorators.http import require_POST
@@ -109,6 +110,13 @@ def get_confirm_delete_form(
 
     return ConfirmDeleteForm
 
+
+#
+# Task Stuff
+#
+class TaskStatusView(View):
+    def get(self, request, request_id, **kwargs):
+        return HttpResponse("DNE")
 
 #
 # Front Page
@@ -853,23 +861,33 @@ class InstanceManagedGMLogin(SuperuserRequiredMixin, View):
         messages.error(request, _("Login failed."))
         return redirect(reverse("panel"))
 
+def instrument_url_with_params(url, params):
+    if params:
+        return f"{url}?{urlencode(params)}"
+    else:
+        return url
 
 class ActivateWorld(View, LoginRequiredMixin):
     def post(self, request, *args, instance_slug="", world_id="", **kwargs):
+        params = None
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            instance.queue_world_activate(world_id)
+            task_id = instance.queue_world_activate(world_id)
             messages.info(request, _("Activating World."))
+            params = {"task_id":task_id}
         except FoundryInstance.DoesNotExist:
             messages.error(request, _("Instance does not exist."))
-        return redirect(reverse("panel"))
+        redir_url = instrument_url_with_params(reverse("panel"), params=params)
+        return redirect(redir_url)
 
 
 class ActivateInstance(View, LoginRequiredMixin):
     def post(self, request, *args, instance_slug="", **kwargs):
+        params = None
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            instance.queue_instance_activate()
+            task_id = instance.queue_instance_activate()
+            params = {"task_id":task_id}
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
         messages.info(
@@ -877,4 +895,5 @@ class ActivateInstance(View, LoginRequiredMixin):
             _("Activated instance %(instance_name)s")
             % {"instance_name": instance.display_name},
         )
-        return redirect(reverse("panel"))
+        redir_url = instrument_url_with_params(reverse("panel"), params=params)
+        return redirect(redir_url)

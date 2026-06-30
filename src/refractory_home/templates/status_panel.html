@@ -14,6 +14,20 @@
 {% endblock %}
 
 {% block content %}
+<script>
+const urlParams = new URL(window.location.href).searchParams;
+if (urlParams.has('task_id')){
+    const task_id = urlParams.get('task_id');
+    setInterval(function(){
+        //$.post("your_ajax_handler_url/is_answerd", userId, function(xhr){
+        //if(xhr.responseText == "answered"){
+        //    location.reload(true);
+        //}  
+        //}
+        //console.log(task_id);
+    }, 500);
+}
+</script>
 <!-- Active Worlds Section -->
 <section class="panel main-panel" id="active-worlds">
     <h2>Active Worlds</h2>
@@ -41,9 +55,7 @@
                     {% if not world.active %}
                         <button type="submit" name="Activate" form="form-{{instance.instance_slug}}-{{world.id}}"><p>Activate</p></button>
                     {% else %}
-                        {% for _ in instance.active_player_range %}
-                            <p>😊</p>
-                        {% endfor%}
+                        <p>{% for _ in instance.active_player_range %}♟{% endfor%}</p>
                     {% endif %}
                     {% if world.active %}
                         </button>

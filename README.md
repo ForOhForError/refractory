@@ -40,7 +40,7 @@ Initial Release:
 - [ ] Basic User and Player Management (delete/disable/password reset without admin panel?)
 - [X] Action for releasing container images to a registry
 - [ ] Validate basic setup for reasonable major version range (9-14+ at least, 8 if possible, lower is a stretch)
-
+  - [X] Fix activate boot loop on v14.352+
 Nice-to-haves:
 
 - [ ] Standard User Features - Password change, forgot password

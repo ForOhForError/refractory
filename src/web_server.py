@@ -17,6 +17,7 @@ from web_interaction.foundry_resource import INSTANCE_PATH
 
 import queue
 import logging
+import uuid
 
 LOGGER = logging.getLogger("server")
 
@@ -38,9 +39,28 @@ class TaskQueue:
     def __init__(self):
         self.queue = queue.Queue()
         self.dispatching = False
+        self.pending_ids = set()
+        self.task_results = dict()
 
-    def queue_task(self, task, *args):
-        self.queue.put((task, args))
+    def queue_task(self, task, *args, task_id = None):
+        if task_id == None:
+            task_id = str(uuid.uuid4())
+        self.queue.put((task, args, task_id))
+        self.pending_ids.add(task_id)
+        return task_id
+    
+    def status(self, task_id):
+        if task_id in self.pending_ids:
+            return "PENDING"
+        elif task_id in self.task_results:
+            return self.task_results.pop(task_id)
+        else:
+            return "DNE"
+    
+    def set_task_result(self, task_id, result):
+        if task_id in self.pending_ids:
+            self.pending_ids.remove(task_id)
+        self.task_results[task_id] = result
 
     def dispatch(self, *_, check=False, **__):
         if check and self.dispatching:
@@ -48,9 +68,11 @@ class TaskQueue:
         else:
             self.dispatching = True
             try:
-                task, task_args = self.queue.get(timeout=1)
+                task, task_args, task_id = self.queue.get(timeout=1)
                 defered = threads.deferToThread(task, *task_args)
                 defered.addCallback(self.dispatch)
+                defered.addCallback(self.set_task_result, task_id, "DONE")
+                defered.addErrback(self.set_task_result, task_id, "ERROR")
             except queue.Empty:
                 self.dispatching = False
 
@@ -74,8 +96,9 @@ class RefractoryServer:
         self.refractory_root_res.putChild(b"", HomeResource())
 
     def queue_and_dispatch(self, task, *args):
-        self.task_queue.queue_task(task, *args)
+        task_id = self.task_queue.queue_task(task, *args)
         self.task_queue.dispatch(check=True)
+        return task_id
 
     def get_unassigned_port(self):
         if not len(self.foundry_resources):
