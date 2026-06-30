@@ -118,6 +118,7 @@ class TaskStatusView(View):
     def get(self, request, request_id, **kwargs):
         return HttpResponse("DNE")
 
+
 #
 # Front Page
 #
@@ -672,7 +673,7 @@ class ManagedUserCreationForm(forms.Form):
         return user
 
 
-class RegisterUserView(FormView, UserPassesTestMixin, LoginRequiredMixin):
+class RegisterUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     model = ManagedFoundryUser
     form_class = ManagedUserCreationForm
     template_name = "register_user.html"
@@ -729,7 +730,7 @@ class RegisterUserView(FormView, UserPassesTestMixin, LoginRequiredMixin):
         return form
 
 
-class InstanceLoginView(View, LoginRequiredMixin):
+class InstanceLoginView(LoginRequiredMixin, View):
     def get(self, request, *args, instance_slug="", **kwargs):
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
@@ -747,7 +748,7 @@ class InstanceLoginView(View, LoginRequiredMixin):
             return redirect(reverse("panel"))
 
 
-class ConfirmSetupView(TemplateView, LoginRequiredMixin):
+class ConfirmSetupView(LoginRequiredMixin, TemplateView):
     template_name = "setup_confirm.html"
 
     def get_instance(self):
@@ -765,7 +766,7 @@ class ConfirmSetupView(TemplateView, LoginRequiredMixin):
         return context
 
 
-class InstanceUserLogin(View, LoginRequiredMixin):
+class InstanceUserLogin(LoginRequiredMixin, View):
     def post(self, request, *args, instance_slug="", user_ix=0, **kwargs):
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
@@ -795,7 +796,7 @@ class InstanceUserLogin(View, LoginRequiredMixin):
         return redirect(reverse("panel"))
 
 
-class InstanceSetupLogin(View, LoginRequiredMixin):
+class InstanceSetupLogin(LoginRequiredMixin, View):
     def post(self, request, *args, instance_slug="", **kwargs):
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
@@ -861,33 +862,35 @@ class InstanceManagedGMLogin(SuperuserRequiredMixin, View):
         messages.error(request, _("Login failed."))
         return redirect(reverse("panel"))
 
+
 def instrument_url_with_params(url, params):
     if params:
         return f"{url}?{urlencode(params)}"
     else:
         return url
 
-class ActivateWorld(View, LoginRequiredMixin):
+
+class ActivateWorld(LoginRequiredMixin, View):
     def post(self, request, *args, instance_slug="", world_id="", **kwargs):
         params = None
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
             task_id = instance.queue_world_activate(world_id)
             messages.info(request, _("Activating World."))
-            params = {"task_id":task_id}
+            params = {"task_id": task_id}
         except FoundryInstance.DoesNotExist:
             messages.error(request, _("Instance does not exist."))
         redir_url = instrument_url_with_params(reverse("panel"), params=params)
         return redirect(redir_url)
 
 
-class ActivateInstance(View, LoginRequiredMixin):
+class ActivateInstance(LoginRequiredMixin, View):
     def post(self, request, *args, instance_slug="", **kwargs):
         params = None
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
             task_id = instance.queue_instance_activate()
-            params = {"task_id":task_id}
+            params = {"task_id": task_id}
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
         messages.info(

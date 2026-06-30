@@ -60,8 +60,8 @@ def build_websocket_reverse_proxy_client_protocol(
             cookies = headers.get("cookie")
             if cookies:
                 self.factory.headers["Cookie"] = cookies
-            resp = super().onConnecting(*args,**kwargs)
-        
+            resp = super().onConnecting(*args, **kwargs)
+
         def onOpen(self):
             server_instance.set_client(self)
 
@@ -75,7 +75,7 @@ def build_websocket_reverse_proxy_client_protocol(
                 payload = (
                     override_client_payload(pkt, response_to=orig_pkt).encode().encode()
                 )
-            print(">",payload)
+            print(">", payload)
             server_instance.sendMessage(payload, isBinary=isBinary)
 
         def onClose(self, wasClean, code, reason):
@@ -100,7 +100,9 @@ def build_websocket_reverse_proxy_protocol(
             )
             factory = WebSocketClientFactory(url)
             factory.protocol = build_websocket_reverse_proxy_client_protocol(
-                self, override_client_payload=override_client_payload, headers=request.headers
+                self,
+                override_client_payload=override_client_payload,
+                headers=request.headers,
             )
             reactor.connectTCP(host, port, factory)
 

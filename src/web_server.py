@@ -42,13 +42,13 @@ class TaskQueue:
         self.pending_ids = set()
         self.task_results = dict()
 
-    def queue_task(self, task, *args, task_id = None):
+    def queue_task(self, task, *args, task_id=None):
         if task_id == None:
             task_id = str(uuid.uuid4())
         self.queue.put((task, args, task_id))
         self.pending_ids.add(task_id)
         return task_id
-    
+
     def status(self, task_id):
         if task_id in self.pending_ids:
             return "PENDING"
@@ -56,7 +56,7 @@ class TaskQueue:
             return self.task_results.pop(task_id)
         else:
             return "DNE"
-    
+
     def set_task_result(self, task_id, result):
         if task_id in self.pending_ids:
             self.pending_ids.remove(task_id)

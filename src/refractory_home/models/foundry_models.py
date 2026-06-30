@@ -402,7 +402,9 @@ class FoundryInstance(models.Model):
             return True
 
     def queue_world_activate(self, world_id):
-        task_id = RefractoryServer.get_server().queue_and_dispatch(self.activate_world, world_id)
+        task_id = RefractoryServer.get_server().queue_and_dispatch(
+            self.activate_world, world_id
+        )
         return task_id
 
     def queue_instance_activate(self):
@@ -732,12 +734,14 @@ class FoundryInstance(models.Model):
             if session_id:
                 connect_url = f"{base_url.replace('http', 'ws')}?session={session_id}"
                 sio = socketio.SimpleClient(
-                    logger=log_internals, engineio_logger=log_internals, http_session=session
+                    logger=log_internals,
+                    engineio_logger=log_internals,
+                    http_session=session,
                 )
                 sio.connect(
                     connect_url,
                     socketio_path=self.socketio_path,
-                    transports=["websocket"]
+                    transports=["websocket"],
                 )
                 return sio
         return None
