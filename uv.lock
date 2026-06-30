@@ -299,7 +299,7 @@ client = [
 
 [[package]]
 name = "refractory"
-version = "0.1.1"
+version = "0.1.1a0"
 source = { editable = "." }
 dependencies = [
     { name = "autobahn", extra = ["twisted"] },
