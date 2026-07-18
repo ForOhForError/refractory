@@ -4,6 +4,7 @@ import os.path
 import zipfile
 import platform
 import subprocess
+import urllib.parse
 from datetime import datetime
 
 import logging
@@ -20,6 +21,7 @@ FOUNDRY_SESSION_COOKIE = "foundry_session"
 FOUNDRY_USERNAME_COOKIE = "foundry_username"
 
 BASE_URL = "https://foundryvtt.com"
+TIMED_URL_APPROVED_HOSTS = ["r2.foundryvtt.com"]
 LOGIN_URL = f"{BASE_URL}/auth/login/"
 RELEASES_URL = f"{BASE_URL}/releases"
 
@@ -110,7 +112,7 @@ def login(session, csrf_token, username, password):
 
 
 def _download_linux_zip(
-    session, foundry_version, download_dir="foundry_releases_zip", platform="linux"
+    session, foundry_version, download_dir="foundry_releases_zip", platform="node"
 ):
     download_url = f"{RELEASES_URL}/download"
     try:
@@ -138,19 +140,18 @@ def _attempt_windows_package_update(foundry_version, releases_path="foundry_rele
     """
     if platform.system() != "Linux" and foundry_version.version_tuple[0] >= 13:
         try:
+            node_app_root = foundry_version.node_app_root
+            if not node_app_root:
+                return
             subprocess.run(
                 ["npm", "remove", "classic-level"],
                 shell=True,
-                cwd=os.path.join(
-                    releases_path, foundry_version.version_string, "resources", "app"
-                ),
+                cwd=node_app_root,
             )
             subprocess.run(
                 ["npm", "i", "classic-level"],
                 shell=True,
-                cwd=os.path.join(
-                    releases_path, foundry_version.version_string, "resources", "app"
-                ),
+                cwd=node_app_root,
             )
         except Exception:
             raise FileNotFoundError(
@@ -190,6 +191,41 @@ def _download_and_write_release(
         raise ex
         return False
     return False
+
+
+def get_build_from_timed_url(foundry_timed_url):
+    try:
+        parsed_url = urllib.parse.urlsplit(foundry_timed_url)
+        if (
+            parsed_url.scheme == "https"
+            and parsed_url.hostname in TIMED_URL_APPROVED_HOSTS
+        ):
+            path_split = parsed_url.path.split("/")
+            build_number = int(path_split[1].split(".")[1])
+            return build_number
+    except Exception:
+        pass
+    return None
+
+
+def download_timed_url(
+    foundry_version, foundry_timed_url, download_dir="foundry_releases_zip"
+):
+    try:
+        with requests.get(
+            foundry_timed_url,
+            stream=True,
+        ) as download_res:
+            download_res.raise_for_status()
+            filename = f"{foundry_version.version_string}.zip"
+            zip_file = os.path.join(download_dir, filename)
+            os.makedirs(download_dir, exist_ok=True)
+            with open(zip_file, "wb") as f:
+                for chunk in download_res.iter_content(chunk_size=8192):
+                    f.write(chunk)
+    except Exception:
+        pass
+    log.msg("Bad url")
 
 
 def download_single_release(foundry_version, foundry_session_id):

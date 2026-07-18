@@ -730,7 +730,6 @@ class FoundryInstance(models.Model):
             if not session_id:
                 session.get(login_url)
                 session_id = session.cookies.get("session", None)
-            logging.info(f"got sid {session_id}")
             if session_id:
                 connect_url = f"{base_url.replace('http', 'ws')}?session={session_id}"
                 sio = socketio.SimpleClient(
@@ -800,14 +799,40 @@ class FoundryVersion(models.Model):
     )
 
     @property
+    def version_download_string(self):
+        return f"{self.major_version}.{self.build}"
+
+    @property
+    def major_version(self):
+        v_tuple = self.version_tuple
+        return v_tuple[1] if v_tuple[0] == 0 else v_tuple[0]
+
+    @property
     def version_tuple(self):
         return tuple([int(version) for version in self.version_string.split(".")])
 
     @property
+    def node_app_root(self) -> str | None:
+        electron_ver_path = os.path.join(
+            RELEASE_PATH_BASE, self.version_string, "resources", "app"
+        )
+        node_ver_path = os.path.join(RELEASE_PATH_BASE, self.version_string)
+        for candidate_path in [electron_ver_path, node_ver_path]:
+            if os.path.exists(candidate_path):
+                return candidate_path
+        return None
+
+    @property
     def executable_path(self) -> str:
-        return os.path.join(
+        electron_ver_path = os.path.join(
             RELEASE_PATH_BASE, self.version_string, "resources", "app", "main.js"
         )
+        node_ver_path = os.path.join(RELEASE_PATH_BASE, self.version_string, "main.js")
+        for candidate_path in [electron_ver_path, node_ver_path]:
+            if os.path.exists(candidate_path):
+                return candidate_path
+        else:
+            return "false"
 
     @property
     def downloaded(self) -> "FoundryVersion.DownloadStatus":
@@ -818,6 +843,10 @@ class FoundryVersion(models.Model):
 
     def download_version(self, foundry_session_id):
         foundry_interaction.download_single_release(self, foundry_session_id)
+
+    @classmethod
+    def download_from_timed_url(cls, timed_url):
+        pass
 
     @classmethod
     def load_versions(cls, limit_refresh_seconds=0):

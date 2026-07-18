@@ -280,7 +280,7 @@ class InstanceCreateView(SuperuserRequiredMixin, CreateView):
         form = super().get_form()
         form.fields["foundry_version"].queryset = FoundryVersion.objects.filter(
             download_status=FoundryVersion.DownloadStatus.DOWNLOADED
-        )
+        ).order_by("-build")
         return form
 
 
@@ -311,7 +311,7 @@ class InstanceUpdateView(SuperuserRequiredMixin, UpdateView):
         form = super().get_form()
         form.fields["foundry_version"].queryset = FoundryVersion.objects.filter(
             download_status=FoundryVersion.DownloadStatus.DOWNLOADED
-        )
+        ).order_by("-build")
         return form
 
 

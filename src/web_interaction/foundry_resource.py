@@ -16,11 +16,47 @@ from twisted.internet import reactor
 from twisted.web import error, proxy
 from twisted.web.server import Site
 
+from django.http.request import HttpRequest
+from django.core.handlers.base import BaseHandler
+
 from refractory_settings import INSTANCE_PATH
 from web_interaction import template_rewrite
 
+DJANGO_HANDLER = BaseHandler()
+MIDDLEWARE_LOADED = False
 
-def to_socketio_packet(payload):
+
+def get_twisted_request_cookies(request):
+    cookieheaders = request.requestHeaders.getRawHeaders(b"Cookie")
+    if cookieheaders is None:
+        return {}
+    cookies = {}
+    for cookietxt in cookieheaders:
+        if cookietxt:
+            for cook in cookietxt.split(b";"):
+                cook = cook.lstrip()
+                try:
+                    k, v = cook.split(b"=", 1)
+                    cookies[k.decode()] = v.decode()
+                except ValueError:
+                    pass
+    return cookies
+
+
+def get_django_user_from_cookies(cookies):
+    global MIDDLEWARE_LOADED
+    base_req = HttpRequest()
+    base_req.META["SERVER_NAME"] = "example.com"
+    base_req.META["SERVER_PORT"] = "80"
+    base_req.COOKIES.update(cookies)
+    if not MIDDLEWARE_LOADED:
+        DJANGO_HANDLER.load_middleware()
+        MIDDLEWARE_LOADED = True
+    DJANGO_HANDLER._middleware_chain(base_req)
+    return base_req.user
+
+
+def to_socketio_packet(payload: str | bytes) -> Packet | None:
     if isinstance(payload, bytes):
         str_payload = payload.decode("utf8")
     else:
@@ -253,6 +289,17 @@ class FoundryResource(SocketIOReverseProxy):
         )
 
     def check_for_deny(self, request):
+        try:
+            cookies = get_twisted_request_cookies(request)
+            django_user = get_django_user_from_cookies(cookies)
+        except Exception:
+            django_user = None
+
+        if django_user == None or (
+            not self.foundry_instance.user_can_view(django_user)
+        ):
+            return True
+
         if request.method == b"POST":
             try:
                 amended_path = request.path.decode().split("/")[3]
