@@ -158,10 +158,9 @@ def _attempt_windows_package_update(foundry_version, releases_path="foundry_rele
                 "Could not resolve npm; non-linux platform fix failed"
             )
 
+
 def ensure_version_extracted(
-    foundry_version,
-    output_path="foundry_releases",
-    download_dir="foundry_releases_zip"
+    foundry_version, output_path="foundry_releases", download_dir="foundry_releases_zip"
 ):
     zip_filename = f"{foundry_version.version_string}.zip"
     zip_file_path = os.path.join(download_dir, zip_filename)
@@ -179,6 +178,7 @@ def ensure_version_extracted(
             testfile.write("refractory")
         _attempt_windows_package_update(foundry_version, releases_path=output_path)
 
+
 def _download_and_write_release(
     session,
     foundry_version,
@@ -194,7 +194,9 @@ def _download_and_write_release(
             success = _download_linux_zip(session, foundry_version)
             if not success:
                 raise Exception("didn't download")
-        ensure_version_extracted(foundry_version,output_path=output_path,download_dir=download_dir)
+        ensure_version_extracted(
+            foundry_version, output_path=output_path, download_dir=download_dir
+        )
     except Exception as ex:
         raise ex
     return False
@@ -230,7 +232,7 @@ def download_timed_url(
             with open(zip_file, "wb") as f:
                 for chunk in download_res.iter_content(chunk_size=8192):
                     f.write(chunk)
-            ensure_version_extracted(foundry_version,download_dir=download_dir)
+            ensure_version_extracted(foundry_version, download_dir=download_dir)
     except Exception:
         pass
     log.msg("Bad url")

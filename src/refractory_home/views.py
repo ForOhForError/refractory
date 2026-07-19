@@ -1,3 +1,4 @@
+from functools import cached_property
 import logging
 import os
 import zipfile
@@ -15,6 +16,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import Group
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse, reverse_lazy
@@ -138,9 +140,35 @@ class PanelView(LoginRequiredMixin, TemplateView):
 #
 
 
+class MajorVersionPaginator(Paginator):
+    def page(self, number):
+        """Return a Page object for the given 1-based page number."""
+        number = self.validate_number(number)
+        return self._get_page(
+            [
+                ver
+                for ver in self.object_list
+                if ver.major_version == self.major_versions[number - 1]
+            ],
+            number,
+            self,
+        )
+
+    @cached_property
+    def major_versions(self):
+        return sorted(
+            list(set([ver.major_version for ver in self.object_list])), reverse=True
+        )
+
+    @cached_property
+    def num_pages(self):
+        return len(self.major_versions)
+
+
 class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListView):
     model = FoundryVersion
-    paginate_by = 20
+    paginator_class = MajorVersionPaginator
+    paginate_by = 100
     template_name = "version_list.html"
     ordering = ["version_string"]
 
