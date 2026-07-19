@@ -143,7 +143,9 @@ class FoundryInstance(models.Model):
             return cls.objects.none()
 
     def user_can_view(self, user):
-        if user.is_superuser:
+        if not user:
+            return False
+        elif user.is_superuser:
             return True
         elif user.is_authenticated:
             if self.view_group == None:
@@ -154,7 +156,9 @@ class FoundryInstance(models.Model):
             return False
 
     def user_can_register(self, user):
-        if user.is_superuser:
+        if not user:
+            return False
+        elif user.is_superuser:
             return True
         elif user.is_authenticated:
             if self.access_group == None:
@@ -165,7 +169,9 @@ class FoundryInstance(models.Model):
             return False
 
     def user_can_register_gms(self, user):
-        if user.is_superuser:
+        if not user:
+            return False
+        elif user.is_superuser:
             return True
         elif user.is_authenticated:
             if self.gm_group == None:
@@ -176,7 +182,9 @@ class FoundryInstance(models.Model):
             return False
 
     def user_can_manage(self, user):
-        if user.is_superuser:
+        if not user:
+            return False
+        elif user.is_superuser:
             return True
         elif user.is_authenticated:
             if self.manage_group == None:
@@ -347,6 +355,7 @@ class FoundryInstance(models.Model):
         return None
 
     def pre_activate(self, port) -> bool:
+        foundry_interaction.ensure_version_extracted(self.foundry_version)
         self.inject_config(port=port, clear_admin_pass=True)
         self.clear_unmatched_license()
         return self.assign_license_if_able()

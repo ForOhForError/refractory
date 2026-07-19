@@ -54,6 +54,7 @@ Nice-to-haves:
 - [ ] Better UI/UX
 - [ ] Standard User Features - Password change, forgot password
 - [ ] Barebones non-managed mode
+- [ ] Download version from timed url
 - [ ] In-depth desync protection (prevent user passwords from being changed, etc)
 - [ ] Instance importing
 - [ ] Cleanup of removed instances/versions

@@ -294,10 +294,7 @@ class FoundryResource(SocketIOReverseProxy):
             django_user = get_django_user_from_cookies(cookies)
         except Exception:
             django_user = None
-
-        if django_user == None or (
-            not self.foundry_instance.user_can_view(django_user)
-        ):
+        if not self.foundry_instance.user_can_view(django_user):
             return True
 
         if request.method == b"POST":
