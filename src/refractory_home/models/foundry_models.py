@@ -844,7 +844,7 @@ class FoundryVersion(models.Model):
             return "false"
 
     @property
-    def downloaded(self) -> "FoundryVersion.DownloadStatus":
+    def downloaded(self) -> bool:
         return self.download_status == FoundryVersion.DownloadStatus.DOWNLOADED
 
     def __str__(self) -> str:
@@ -856,41 +856,6 @@ class FoundryVersion(models.Model):
     @classmethod
     def download_from_timed_url(cls, timed_url):
         pass
-
-    @classmethod
-    def load_versions(cls, limit_refresh_seconds=0):
-        if limit_refresh_seconds > 0:
-            now = timezone.now()
-            if hasattr(cls, "refresh_timestamp"):
-                old = getattr(cls, "refresh_timestamp")
-                if now - old <= timedelta(seconds=limit_refresh_seconds):
-                    return
-            cls.refresh_timestamp = now
-
-        with requests.Session() as rsession:
-            qset = cls.objects.all()
-            versions = foundry_interaction.get_releases(rsession)
-            with transaction.atomic():
-                for release in versions:
-                    version_string = release.get("version")
-                    build = release.get("build")
-                    update_type, update_category = (
-                        cls.UpdateType.FULL,
-                        cls.UpdateCategory.STABLE,
-                    )
-                    for tag in release.get("tags"):
-                        if tag in cls.UpdateType:
-                            update_type = tag
-                        elif tag in cls.UpdateCategory:
-                            update_category = tag
-                    cls.objects.update_or_create(
-                        version_string=version_string,
-                        defaults=dict(
-                            update_type=update_type,
-                            update_category=update_category,
-                            build=build,
-                        ),
-                    )
 
 
 # regular expression and validator for foundry licenses

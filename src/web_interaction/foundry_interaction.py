@@ -159,6 +159,12 @@ def _attempt_windows_package_update(foundry_version, releases_path="foundry_rele
             )
 
 
+def release_artifact_exists(foundry_version, download_dir="foundry_releases_zip"):
+    zip_filename = f"{foundry_version.version_string}.zip"
+    zip_file_path = os.path.join(download_dir, zip_filename)
+    return os.path.exists(zip_file_path)
+
+
 def ensure_version_extracted(
     foundry_version, output_path="foundry_releases", download_dir="foundry_releases_zip"
 ):
@@ -197,6 +203,7 @@ def _download_and_write_release(
         ensure_version_extracted(
             foundry_version, output_path=output_path, download_dir=download_dir
         )
+        return True
     except Exception as ex:
         raise ex
     return False

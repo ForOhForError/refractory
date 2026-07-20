@@ -37,6 +37,7 @@ from django.views.generic import (
 from django.views.generic.edit import FormView
 from django_ratelimit.decorators import ratelimit
 
+from refractory_home import common_tasks
 from refractory_home.models import (
     FoundryInstance,
     FoundryState,
@@ -178,7 +179,7 @@ class VersionListView(SuperuserRequiredMixin, FoundryVTTLoginContextMixin, ListV
         return context
 
     def get_queryset(self):
-        FoundryVersion.load_versions(limit_refresh_seconds=60)
+        common_tasks.load_foundry_releases()
         qs = super().get_queryset()
         return list(reversed(sorted(qs, key=lambda n: (n.version_tuple))))
 
