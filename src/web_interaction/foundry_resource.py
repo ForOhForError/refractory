@@ -1,6 +1,7 @@
 import json
 import logging
 import os.path
+import shutil
 import subprocess
 import urllib.parse
 
@@ -52,7 +53,7 @@ def get_django_user_from_cookies(cookies):
     if not MIDDLEWARE_LOADED:
         DJANGO_HANDLER.load_middleware()
         MIDDLEWARE_LOADED = True
-    DJANGO_HANDLER._middleware_chain(base_req)
+    DJANGO_HANDLER._middleware_chain(base_req)  # type: ignore
     return base_req.user
 
 
@@ -95,8 +96,8 @@ def build_websocket_reverse_proxy_client_protocol(
             # forward cookies, since the foundry server is expecting the client ID on the ws cookie in version v14.352+
             cookies = headers.get("cookie")
             if cookies:
-                self.factory.headers["Cookie"] = cookies
-            resp = super().onConnecting(*args, **kwargs)
+                self.factory.headers["Cookie"] = cookies  # type: ignore
+            return super().onConnecting(*args, **kwargs)
 
         def onOpen(self):
             server_instance.set_client(self)
@@ -111,7 +112,7 @@ def build_websocket_reverse_proxy_client_protocol(
                 payload = (
                     override_client_payload(pkt, response_to=orig_pkt).encode().encode()
                 )
-            print(">", payload)
+            # logging.debug(f"< {payload if len(payload) < 1000 else '[truncated]'}")
             server_instance.sendMessage(payload, isBinary=isBinary)
 
         def onClose(self, wasClean, code, reason):
@@ -140,7 +141,7 @@ def build_websocket_reverse_proxy_protocol(
                 override_client_payload=override_client_payload,
                 headers=request.headers,
             )
-            reactor.connectTCP(host, port, factory)
+            reactor.connectTCP(host, port, factory)  # type: ignore
 
         def onOpen(self):
             pass
@@ -155,6 +156,7 @@ def build_websocket_reverse_proxy_protocol(
                     self.sent_messages[pkt.id] = pkt
                 if override_server_payload:
                     payload = override_server_payload(pkt).encode().encode()
+                # logging.debug(f"> {payload}")
                 self.client_instance.sendMessage(payload, isBinary=isBinary)
 
         def onClose(self, wasClean, code, reason):
@@ -177,7 +179,8 @@ class OverrideProxyClient(proxy.ProxyClient):
                 self.father.finish()
             except RuntimeError:
                 pass
-            self.transport.loseConnection()
+            if self.transport:
+                self.transport.loseConnection()
 
 
 class OverrideProxyClientFactory(proxy.ProxyClientFactory):
@@ -187,7 +190,7 @@ class OverrideProxyClientFactory(proxy.ProxyClientFactory):
 
     def __init__(self, command, rest, version, headers, data, father):
         super().__init__(command, rest, version, headers, data, father)
-        self.protocol = OverrideProxyClient
+        self.protocol = OverrideProxyClient  # type: ignore
 
 
 class SocketIOReverseProxy(proxy.ReverseProxyResource):
@@ -244,6 +247,14 @@ def get_request_param(request, param_name):
         return qs_body.get(param_name, [None])[0]
 
 
+def get_node_execuatable_for_major_version(major_version):
+    node_old_exists = shutil.which("node-old") is not None
+    if node_old_exists and major_version < 8:
+        return "node-old"
+    else:
+        return "node"
+
+
 class FoundryResource(SocketIOReverseProxy):
     def __init__(self, foundry_instance, host="localhost", port=30000, log=True):
         self.foundry_instance = foundry_instance
@@ -260,17 +271,19 @@ class FoundryResource(SocketIOReverseProxy):
             }
         else:
             kwargs = {}
-        self.process = subprocess.Popen(
-            [
-                "node",
-                foundry_instance.foundry_version.executable_path,
-                f"--dataPath={data_path}",
-                "--noupdate",
-                f"--adminPassword={foundry_instance.admin_pass}",
-                f"--adminKey={foundry_instance.admin_pass}",
-            ],
-            **kwargs,
+        node_executable = get_node_execuatable_for_major_version(
+            self.foundry_instance.foundry_version.major_version
         )
+        logging.debug(f"Using node executable {node_executable}")
+        foundry_command = [
+            node_executable,
+            foundry_instance.foundry_version.executable_path,
+            f"--dataPath={data_path}",
+            "--noupdate",
+            f"--adminPassword={foundry_instance.admin_pass}",
+            f"--adminKey={foundry_instance.admin_pass}",
+        ]
+        self.process = subprocess.Popen(foundry_command, *[], **kwargs)
 
     def get_base_url(self):
         return f"http://{self.host}:{self.port}"

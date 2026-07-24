@@ -1,18 +1,14 @@
-import os
-import os.path
 import sys
-from urllib.parse import quote_plus
 
-from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
 from django.urls import reverse, set_script_prefix
 from twisted.internet import reactor, threads
-from twisted.web.resource import Resource, IResource
+from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET, Site
-from twisted.web.util import redirectTo
 from twisted.web.wsgi import WSGIResource
 
 import web_interaction.foundry_resource
 from refractory_settings import MANAGEMENT_PATH
+from django.core.wsgi import get_wsgi_application as get_django_wsgi_application
 from web_interaction.foundry_resource import INSTANCE_PATH
 
 import queue

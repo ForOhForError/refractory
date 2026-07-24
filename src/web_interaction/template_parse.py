@@ -86,7 +86,7 @@ class Element:
         self,
         tag: str,
         attr: typing.Dict[str, str],
-        results: typing.List["Element"] = None,
+        results: typing.List["Element"] | None = None,
         limit_matches=-1,
         limit_depth=None,
         _level=0,
@@ -147,12 +147,13 @@ class TemplateOverwriter(html.parser.HTMLParser):
     def fix_handlebar_attrs(self, attrs, attr_ranges=[]):
         text = self.get_starttag_text()
         new_attrs = OrderedDict()
-        for ix in range(len(attrs)):
-            key, value = attrs[ix]
-            start, _ = attr_ranges[ix]
-            if start > 0 and text[start - 1] != " ":  # fix keys starting with /
-                key = text[start - 1] + key
-            new_attrs[key] = value
+        if text:
+            for ix in range(len(attrs)):
+                key, value = attrs[ix]
+                start, _ = attr_ranges[ix]
+                if start > 0 and text[start - 1] != " ":  # fix keys starting with /
+                    key = text[start - 1] + key
+                new_attrs[key] = value
         return new_attrs
 
     def handle_startendtag(self, tag, attrs, attr_ranges=[]):
@@ -206,12 +207,12 @@ class TemplateOverwriter(html.parser.HTMLParser):
         # Now parse the data between i+1 and j into a tag and attrs
         attrs = []
         attr_ranges = []
-        match = html.parser.tagfind_tolerant.match(rawdata, i + 1)
+        match = html.parser.tagfind_tolerant.match(rawdata, i + 1)  # type: ignore
         assert match, "unexpected call to parse_starttag()"
         k = match.end()
         self.lasttag = tag = match.group(1).lower()
         while k < endpos:
-            m = html.parser.attrfind_tolerant.match(rawdata, k)
+            m = html.parser.attrfind_tolerant.match(rawdata, k)  # type: ignore
             if not m:
                 break
             attrname, rest, attrvalue = m.group(1, 2, 3)

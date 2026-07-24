@@ -1,11 +1,15 @@
+# Copy node binaries from official node image
+FROM node:22-slim as legacy-node
+FROM node:24-slim as current-node
+# Runtime container
 FROM python:3.10-slim-bookworm
-ARG NODE_MAJOR=24
+
+COPY --from=legacy-node /usr/local/bin/node /usr/local/bin/node-old
+COPY --from=current-node /usr/local/bin/node /usr/local/bin/node
+
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl gnupg && \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && \
-    apt-get install -y nodejs libleveldb-dev tini && \
+    apt-get install -y libleveldb-dev tini && \
     python3 -m pip install uv && \
     addgroup --gid 10001 --system refractory && \
     adduser --uid 10000 --system --ingroup refractory --home /home/refractory refractory 

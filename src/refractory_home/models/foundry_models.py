@@ -942,24 +942,38 @@ class ManagedFoundryUser(models.Model):
 
     def get_create_message(self) -> typing.Tuple[str, dict]:
         message_data = {"type": "User", "action": "create"}
-        create_data = [
-            {
-                "name": self.user_name,
-                "role": self.initial_role,
-                "_id": None,
-                "password": self.user_password,
-                "avatar": None,
-                "character": None,
-                "color": "#bf28cc",
-                "pronouns": "",
-                "hotbar": {},
-                "permissions": {},
-                "flags": {},
-            }
-        ]
-        if self.instance.version_tuple[0] > 11:
+        create_data = {
+            "name": self.user_name,
+            "role": self.initial_role,
+        }
+        mojor_version = (
+            self.instance.foundry_version.major_version
+            if self.instance.foundry_version
+            else 0
+        )
+        if mojor_version > 7:
+            create_data.update(
+                {
+                    "_id": None,
+                    "password": self.user_password,
+                    "avatar": None,
+                    "character": None,
+                    "color": "#bf28cc",
+                    "pronouns": "",
+                    "hotbar": {},
+                    "permissions": {},
+                    "flags": {},
+                }
+            )
+        else:
+            # Needs testing
+            create_data.update({"accessKey": self.user_password})
+        data_list = [create_data]
+
+        # TODO: Change password for very old versions
+        if mojor_version > 11:
             create_operation = {
-                "data": create_data,
+                "data": data_list,
                 "options": {"temporary": False, "renderSheet": False, "render": True},
                 "parent": None,
                 "modifiedTime": int(time.time()),
@@ -968,7 +982,7 @@ class ManagedFoundryUser(models.Model):
             }
             message_data["operation"] = create_operation
         else:
-            message_data["data"] = create_data
+            message_data["data"] = data_list
         return "modifyDocument", message_data
 
 
