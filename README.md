@@ -38,19 +38,19 @@ Initial Release:
 - [X] Group Management
 - [X] Instance Configuration Button
 - [ ] Basic User and Player Management (delete/disable/password reset without admin panel?)
-- [ ] Env vars for setting up an initial admin account
+- [x] Env vars for setting up an initial admin account
 - [X] Action for releasing container images to a registry
-- [ ] Validate basic setup for reasonable major version range (9-14+ at least, 8 if possible, lower is a stretch)
-  - [x] 8
-  - [ ] 9
-  - [ ] 10
-  - [ ] 11
-  - [ ] 12
+- [x] Validate basic setup for reasonable major version range (9-14+ at least, 8 if possible, lower is a stretch)
+  - [x] 9
+  - [x] 10
+  - [x] 11
+  - [x] 12
   - [x] 13
   - [x] 14
 
 Nice-to-haves:
 
+- [ ] Support for major versions 8 and lower
 - [ ] Better UI/UX
 - [ ] Standard User Features - Password change, forgot password
 - [ ] Barebones non-managed mode

@@ -249,7 +249,7 @@ def get_request_param(request, param_name):
 
 def get_node_execuatable_for_major_version(major_version):
     node_old_exists = shutil.which("node-old") is not None
-    if node_old_exists and major_version < 8:
+    if node_old_exists and major_version < 14:
         return "node-old"
     else:
         return "node"

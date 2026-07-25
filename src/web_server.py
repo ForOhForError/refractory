@@ -81,9 +81,11 @@ class RefractoryServer:
         self.refractory_root_res = Resource()
         self.refractory_instances_res = Resource()
         self.site = Site(self.refractory_root_res)
-        self.django_res = WSGIResource(
-            reactor, reactor.getThreadPool(), get_django_wsgi_application()
-        )
+        django_app = get_django_wsgi_application()
+        from refractory_home.common_tasks import refractory_setup
+
+        refractory_setup()
+        self.django_res = WSGIResource(reactor, reactor.getThreadPool(), django_app)
         self.refractory_root_res.putChild(MANAGEMENT_PATH.encode(), self.django_res)
         self.refractory_root_res.putChild(
             INSTANCE_PATH.encode(), self.refractory_instances_res
