@@ -44,11 +44,12 @@ def get_twisted_request_cookies(request):
     return cookies
 
 
-def get_django_user_from_cookies(cookies):
+def get_django_user_from_cookies(cookies, hostname="localhost"):
     global MIDDLEWARE_LOADED
     base_req = HttpRequest()
-    base_req.META["SERVER_NAME"] = "example.com"
+    base_req.META["SERVER_NAME"] = hostname
     base_req.META["SERVER_PORT"] = "80"
+    base_req.method = "GET"
     base_req.COOKIES.update(cookies)
     if not MIDDLEWARE_LOADED:
         DJANGO_HANDLER.load_middleware()
@@ -304,7 +305,9 @@ class FoundryResource(SocketIOReverseProxy):
     def check_for_deny(self, request):
         try:
             cookies = get_twisted_request_cookies(request)
-            django_user = get_django_user_from_cookies(cookies)
+            django_user = get_django_user_from_cookies(
+                cookies, hostname=request.getRequestHostname().decode()
+            )
         except Exception:
             django_user = None
         if not self.foundry_instance.user_can_view(django_user):
