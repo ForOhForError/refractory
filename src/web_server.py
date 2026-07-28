@@ -125,11 +125,15 @@ class RefractoryServer:
                 )
                 self.refractory_instances_res.putChild(instance_slug_bytes, foundry_res)
                 self.foundry_resources[foundry_instance.instance_name] = foundry_res
-                foundry_instance.post_activate()
-                LOGGER.info(
-                    f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}"
-                )
-                return True
+                if foundry_instance.post_activate():
+                    LOGGER.info(
+                        f"launched {foundry_instance.instance_name} - version {foundry_instance.foundry_version.version_string} - on internal port {port}"
+                    )
+                    return True
+                else:
+                    foundry_res.end_process()
+                    self.remove_foundry_instance(foundry_instance)
+                    return False
         return False
 
     def remove_foundry_instance(self, foundry_instance):

@@ -40,7 +40,8 @@ Initial Release:
 - [ ] Basic User and Player Management (delete/disable/password reset without admin panel?)
 - [x] Env vars for setting up an initial admin account
 - [X] Action for releasing container images to a registry
-- [x] Validate basic setup for reasonable major version range (9-14+ at least, 8 if possible, lower is a stretch)
+- [x] Validate basic setup for reasonable major version range
+  - [ ] 8: needs additional work to get the system installer to behave, but functions when bypassed
   - [x] 9
   - [x] 10
   - [x] 11
@@ -58,7 +59,7 @@ Nice-to-haves:
 - [ ] In-depth desync protection (prevent user passwords from being changed, etc)
 - [ ] Instance importing
 - [ ] Cleanup of removed instances/versions
-- [ ] Smarter management of extracted foundry versions - zip file should be the authoritative artifact
+- [x] Smarter management of extracted foundry versions - zip file should be the authoritative artifact
 - [ ] Discord auth as secondary or alternate login
 
 ## Open-Source Projects Pulled into Source

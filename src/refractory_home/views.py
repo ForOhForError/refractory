@@ -343,6 +343,13 @@ class InstanceUpdateView(SuperuserRequiredMixin, UpdateView):
         ).order_by("-build")
         return form
 
+    def form_valid(self, form):
+        instance = self.get_object()
+        if self.get_object().is_active:
+            instance.deactivate()
+        response = super(UpdateView, self).form_valid(form)
+        return response
+
 
 class InstanceDeleteView(SuperuserRequiredMixin, DeleteView):
     model = FoundryInstance
@@ -901,25 +908,20 @@ def instrument_url_with_params(url, params):
 
 class ActivateWorld(LoginRequiredMixin, View):
     def post(self, request, *args, instance_slug="", world_id="", **kwargs):
-        params = None
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            task_id = instance.queue_world_activate(world_id)
+            instance.activate_world(world_id)
             messages.info(request, _("Activating World."))
-            params = {"task_id": task_id}
         except FoundryInstance.DoesNotExist:
             messages.error(request, _("Instance does not exist."))
-        redir_url = instrument_url_with_params(reverse("panel"), params=params)
-        return redirect(redir_url)
+        return redirect(reverse("panel"))
 
 
 class ActivateInstance(LoginRequiredMixin, View):
     def post(self, request, *args, instance_slug="", **kwargs):
-        params = None
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            task_id = instance.queue_instance_activate()
-            params = {"task_id": task_id}
+            instance.activate()
         except FoundryInstance.DoesNotExist:
             raise PermissionDenied
         messages.info(
@@ -927,5 +929,4 @@ class ActivateInstance(LoginRequiredMixin, View):
             _("Activated instance %(instance_name)s")
             % {"instance_name": instance.display_name},
         )
-        redir_url = instrument_url_with_params(reverse("panel"), params=params)
-        return redirect(redir_url)
+        return redirect(reverse("panel"))

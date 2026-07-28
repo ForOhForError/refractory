@@ -15,18 +15,23 @@
 
 {% block content %}
 <script>
-const urlParams = new URL(window.location.href).searchParams;
-if (urlParams.has('task_id')){
-    const task_id = urlParams.get('task_id');
-    setInterval(function(){
-        //$.post("your_ajax_handler_url/is_answerd", userId, function(xhr){
-        //if(xhr.responseText == "answered"){
-        //    location.reload(true);
-        //}  
-        //}
-        //console.log(task_id);
-    }, 500);
+function asyncReloadSubmitForm(event) {
+    event.preventDefault();
+    let formData = new FormData(event.target);
+    fetch(event.target.action, {
+        method: "POST",
+        body: formData
+    })
+    .then((response) => {
+        window.location.reload();
+    });
 }
+window.addEventListener('load',function () {
+    const forms = document.querySelectorAll("form.async-reload");
+    forms.forEach((form) => {
+        form.addEventListener("submit", asyncReloadSubmitForm);
+    });
+});
 </script>
 <!-- Active Worlds Section -->
 <section class="panel main-panel" id="active-worlds">
@@ -35,7 +40,7 @@ if (urlParams.has('task_id')){
         {% for instance in instances %}
             {% for world in instance.worlds %}
                 <div class="world-card" {% if world.active %}style="background-image: url({{instance.active_background_url}})"{% else %}style="background-image: url({{instance.default_background_url}})"{% endif %}>
-                    <form class="hidden-form" id="form-{{instance.instance_slug}}-{{world.id}}"
+                    <form class="hidden-form {% if not world.active %}async-reload{% endif %}" id="form-{{instance.instance_slug}}-{{world.id}}"
                         {% if world.active %} 
                             action="{{instance.user_facing_base_url}}"
                             {# target="_blank" #}
@@ -86,7 +91,7 @@ if (urlParams.has('task_id')){
                     {% if not instance.is_active %} 
                         <button type="submit" form="form-{{instance.instance_slug}}"><p>Activate</p></button>
                     {% endif %}
-                    <form class="hidden-form" id="form-{{instance.instance_slug}}"
+                    <form class="hidden-form {% if not instance.is_active %}async-reload{% endif %}" id="form-{{instance.instance_slug}}"
                         {% if instance.is_active %} 
                             action="{{instance.user_facing_base_url}}" 
                             {# target="_blank" #}

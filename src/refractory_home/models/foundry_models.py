@@ -361,9 +361,12 @@ class FoundryInstance(models.Model):
         return self.assign_license_if_able()
 
     def post_activate(self):
-        self.wait_for_ready()
-        self.activate_license()
-        self.accept_eula_if_able()
+        if self.wait_for_ready():
+            self.activate_license()
+            self.accept_eula_if_able()
+            return True
+        else:
+            return False
 
     @property
     def is_active(self) -> bool:
@@ -636,17 +639,22 @@ class FoundryInstance(models.Model):
         return self.user_facing_base_url, dict(session.cookies)
 
     def wait_for_ready(self):
+        MAX_ATTEMPTS = 5
         with requests.Session() as session:
-            while True:
+            for attempt_no in range(MAX_ATTEMPTS):
                 try:
                     base_url = f"{self.server_facing_base_url}/"
                     logging.info(f"attempting connection to {base_url}")
                     res = session.get(base_url)
-                    break
+                    return True
                 except Exception as ex:
                     # logging.exception("couldn't connect")
-                    logging.info("time out?")
-                    time.sleep(1)
+                    if attempt_no < MAX_ATTEMPTS - 1:
+                        logging.info("Time out - trying again")
+                        time.sleep(1)
+                    else:
+                        logging.info("Total time-out.")
+        return False
 
     def activate_license(self) -> bool:
         with requests.Session() as session:

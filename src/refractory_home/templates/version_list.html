@@ -4,6 +4,24 @@
 {% block title %}Refractory Version Management{% endblock %}
 
 {% block content %}
+<script>
+async function asyncReloadSubmitForm(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    fetch(event.target.action, {
+        method: "POST",
+        body: formData,
+    }).then((response) => {
+        window.location.reload();
+    });
+}
+window.addEventListener('load',function () {
+    const forms = document.querySelectorAll("form.async-reload");
+    forms.forEach((form) => {
+        form.addEventListener("submit", asyncReloadSubmitForm);
+    });
+});
+</script>
 <section class="panel thin-panel" id="login-panel">
     <div class="login-panel">
         <h2>FoundryVTT Releases</h2>
@@ -20,7 +38,7 @@
                 <p>Download in progress</p>
                 {% elif version.download_status == version.DownloadStatus.NOT_DOWNLOADED %}
                     {% if foundry_user %}
-                        <form action="{% url 'version_download' version.version_string %}" method="post">
+                        <form class="async-reload" action="{% url 'version_download' version.version_string %}" method="post">
                             {% csrf_token %}
                             <button type="submit">Download</button>
                         </form>
