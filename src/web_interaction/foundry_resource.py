@@ -231,11 +231,24 @@ class SocketIOReverseProxy(proxy.ReverseProxyResource):
             return self.rev_proxy.getChild(path, request)
 
 
-DENY_ACTIONS = {
+GLOBAL_DENY_ACTIONS = {
     "join": ["shutdown", "login", "adminLogin"],
     "auth": ["adminAuth", "auth"],
 }
 
+def old_compat_do_reject(instance, path, request):
+    # At the moment, just gets the 0.8.9 system installer (other old versions untested) 
+    # to let you enter a manifest url.
+    # The system listing doesn't actually work as it exists, so this is a reasonable way to get
+    # some functionality back in.
+    body = request.content.read().decode()
+    request.content.seek(0)
+    json_body = json.loads(body)
+    if path == "setup":
+        if instance.foundry_version.major_version < 9:
+            if json_body.get("action") == "getPackages" and json_body.get("type") == "system":
+                return True
+    return False
 
 def get_request_param(request, param_name):
     body = request.content.read().decode()
@@ -316,11 +329,13 @@ class FoundryResource(SocketIOReverseProxy):
         if request.method == b"POST":
             try:
                 amended_path = request.path.decode().split("/")[3]
-                if amended_path in DENY_ACTIONS:
-                    actions_to_deny = DENY_ACTIONS[amended_path]
+                if amended_path in GLOBAL_DENY_ACTIONS:
+                    actions_to_deny = GLOBAL_DENY_ACTIONS[amended_path]
                     action = get_request_param(request, "action")
                     if action in actions_to_deny:
                         return True
+                elif old_compat_do_reject(self.foundry_instance, amended_path, request):
+                    return True
                 elif amended_path == "license":
                     action = get_request_param(request, "agree")
                     if action == "on":
