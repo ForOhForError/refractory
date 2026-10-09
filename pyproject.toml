@@ -1,6 +1,6 @@
 [project]
 name = "refractory"
-version = "0.1.1rc4"
+version = "0.1.1rc5"
 description = "Foundry VTT Instance Manager"
 authors = [{ name = "ForOhForError" }]
 requires-python = "~=3.10.0"
@@ -15,6 +15,7 @@ dependencies = [
     "beautifulsoup4>=4.12.2,<5",
     "django-ratelimit>=4.1.0",
     "plyvel-ci>=1.5.1",
+    "stream-zip>=0.0.84",
 ]
 
 [build-system]

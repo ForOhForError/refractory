@@ -1,10 +1,12 @@
+import datetime
 from functools import cached_property
 import logging
 import os
-import zipfile
-from io import BytesIO
-from pathlib import Path
-from wsgiref.util import FileWrapper
+import stat
+import typing
+
+import stream_zip
+from pathlib import Path, PosixPath, PurePath, PurePosixPath
 
 from django import forms
 from django.contrib import messages
@@ -17,7 +19,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -648,32 +650,51 @@ class SignupFormView(FormView):
 # Actions for Instances
 #
 
+ZIP_FILESPEC = stat.S_IFREG | 0o600 #owner read/write, regular file
+
+def local_files(name_tuples:typing.List[typing.Tuple[Path, Path]]) -> typing.Iterable[stream_zip.MemberFile]:
+    def contents(name):
+        if os.path.isdir(name):
+            yield b""
+        else:
+            with open(name, 'rb') as f:
+                while chunk := f.read(65536):
+                    yield chunk
+
+    return (
+        (zip_name.as_posix(), datetime.datetime.fromtimestamp(os.path.getmtime(fs_name)), ZIP_FILESPEC, stream_zip.ZIP_64, contents(fs_name))
+        for (fs_name, zip_name) in name_tuples
+    )
+
 
 class DownloadInstanceBackup(View, SuperuserRequiredMixin):
     def post(self, request, *args, instance_slug="", **kwargs):
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
-            buf = BytesIO()
 
-            archive = zipfile.ZipFile(buf, "w")
-            with buf:
-                whitelist_path = Path(os.path.join(instance.data_path, "Data"))
-                for root, dirs, files in os.walk(instance.data_path):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        if whitelist_path in Path(file_path).parents:
-                            archive.write(file_path, os.path.relpath(file_path))
-                archive.close()
-                resp = HttpResponse(
-                    buf.getvalue(), content_type="application/x-zip-compressed"
-                )
-                resp["Content-Disposition"] = (
-                    "attachment; filename=refractory_backup_%s.zip" % instance_slug
-                )
-                return resp
+            zip_paths = []
+            whitelist_path = Path(os.path.join(instance.data_path, "Data"))
+            data_root = Path(instance.data_path)
+            for root, dirs, files in os.walk(instance.data_path):
+                for file in files:
+                    file_path = Path(os.path.join(root, file))
+                    if whitelist_path in file_path.parents:
+                        tup = (file_path, file_path.relative_to(data_root))
+                        zip_paths.append(tup)
+            stream_zip_files = local_files(zip_paths)
+            zip_streamer = stream_zip.stream_zip(stream_zip_files)
+            resp = StreamingHttpResponse(
+                zip_streamer, content_type="application/x-zip-compressed"
+            )
+            resp["Content-Disposition"] = (
+                "attachment; filename=refractory_backup_%s.zip" % instance_slug
+            )
+            return resp
         except FoundryInstance.DoesNotExist:
             messages.error(request, _("Instance does not exist."))
             return redirect(reverse("panel"))
+        except Exception:
+            logging.exception("Download failed...")
         messages.error(request, _("Download failed."))
         return redirect(reverse("panel"))
 
