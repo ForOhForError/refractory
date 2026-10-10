@@ -34,6 +34,7 @@ from .views import (
     InviteListView,
     InviteUpdateView,
     InviteDeleteView,
+    WorldBackground
 )
 
 urlpatterns = [
@@ -107,6 +108,11 @@ urlpatterns = [
         "instances/<slug:instance_slug>/activate/<slug:world_id>/",
         ActivateWorld.as_view(),
         name="activate_world",
+    ),
+    path(
+        "instances/<slug:instance_slug>/thumbnail/<slug:world_id>/",
+        WorldBackground.as_view(),
+        name="world_thumbnail",
     ),
     path("instances/", InstanceListView.as_view(), name="instance_list"),
     path(

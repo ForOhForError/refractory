@@ -1,5 +1,6 @@
 import datetime
 from functools import cached_property
+import json
 import logging
 import os
 import stat
@@ -19,7 +20,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -926,6 +927,63 @@ def instrument_url_with_params(url, params):
     else:
         return url
 
+class WorldBackground(LoginRequiredMixin, View):
+    def get(self, request, *args, instance_slug="", world_id="", **kwargs):
+        try:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            world_list = instance.worlds
+            if instance.active_world_name == world_id:
+                return HttpResponseRedirect(instance.active_background_url)
+            for world in world_list:
+                if world.get("id") == world_id:
+                    world_background = world.get("background")
+                    world_system = world.get("system")
+                    if world_background:
+                        resp = self._serve_instance_media_location(instance, world_background)
+                        if resp:
+                            return resp
+                    elif world_system:
+                        system_json = os.path.join(instance.data_path, "Data/systems", world_system, "system.json")
+                        if os.path.exists(system_json) and os.path.isfile(system_json):
+                            with open(system_json) as system_file:
+                                system_data = json.load(system_file)
+                            system_bg = system_data.get("background")
+                            if system_bg:
+                                resp = self._serve_instance_media_location(instance, system_bg)
+                                if resp:
+                                    return resp
+                            media_string, is_url = self._get_media_by_preference(system_data.get("media", []))
+                            if media_string:
+                                resp = self._serve_instance_media_location(instance, media_string, is_url=is_url)
+                                if resp:
+                                    return resp
+        except Exception:
+            pass
+        return HttpResponseRedirect(FoundryInstance.inactive_url())
+    
+    def _get_media_by_preference(self, media_data, type_priority=("cover", "setup", "icon")):
+        entries = {}
+        for entry in media_data:
+            etype = entry.get("type")
+            if etype:
+                entries[etype] = (entry.get("thumbnail"), entry.get("url"))
+        for type_check in type_priority:
+            if type_check in entries:
+                thumb, url = entries[type_check]
+                if bool(thumb) or bool(url):
+                    return_tup = (thumb, False) if thumb else (url, True)
+                    return return_tup
+        return (None, False)
+    
+    def _serve_instance_media_location(self, instance:FoundryInstance, location:str, is_url:bool=False):
+        if is_url:
+            return HttpResponseRedirect(redirect_to=location)
+        else:
+            full_media_location = Path(os.path.join(instance.data_path, "Data", location))
+            if full_media_location.exists() and full_media_location.is_file():
+                if Path(instance.data_path) in full_media_location.parents:
+                    response = FileResponse(open(full_media_location,"rb"), as_attachment=False)
+                    return response
 
 class ActivateWorld(LoginRequiredMixin, View):
     def post(self, request, *args, instance_slug="", world_id="", **kwargs):
