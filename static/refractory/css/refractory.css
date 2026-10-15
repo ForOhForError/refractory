@@ -292,6 +292,7 @@ button:active {
     max-height: 2lh;
     overflow: scroll;
     scrollbar-width: none;
+    overflow-wrap: break-word;
 }
 
 .card-hr {
@@ -308,6 +309,7 @@ button:active {
     overflow: scroll;
     scrollbar-width: none;
     text-shadow: 1px 1px 4px black;
+    overflow-wrap: break-word;
 }
 
 .tooltip {

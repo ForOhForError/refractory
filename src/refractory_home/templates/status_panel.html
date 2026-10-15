@@ -10,9 +10,9 @@
         if (!event.deltaY) {
             return;
         }
-
-        event.currentTarget.scrollLeft += event.deltaY + event.deltaX;
-        event.preventDefault();
+        if (event.currentTarget === event.target) {
+            event.currentTarget.scrollLeft += event.deltaY + event.deltaX;
+        }
     }
 
     function asyncReloadSubmitForm(event) {
@@ -45,7 +45,7 @@
     {% for instance in instances %}
         <div class="instance-card fakebutton" name="card-{{instance.instance_slug}}">
             <button class="hiddenbutton mainbutton" type="submit" form="form-{{instance.instance_slug}}">
-                <p>{{ instance.display_name }}</p>
+                <div class="card-instance-line">{{ instance.display_name }}</div>
                 {% if instance.instance_state in instance.online_states %}
                     <div class="status-badge active-status"></div>
                 {% elif instance.instance_state in instance.processing_states %}
