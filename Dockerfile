@@ -27,7 +27,6 @@ COPY --chown=refractory README.md .
 USER refractory
 RUN uv sync && mkdir -p refractory_data foundry_releases_zip foundry_releases instance_data db
 COPY --chown=refractory src/ src/
-COPY --chown=refractory static/foundryportal/ static/foundryportal/
 COPY --chown=refractory static/refractory/ static/refractory/
 COPY --chown=refractory init_and_run.sh .
 
