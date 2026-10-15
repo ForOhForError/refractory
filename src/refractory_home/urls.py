@@ -3,6 +3,7 @@ from django.contrib.auth.views import LogoutView
 from django.urls import path
 
 from .views import (
+    DeactivateWorld,
     FoundryLoginFormView,
     InstanceCreateView,
     InstanceDeleteView,
@@ -98,16 +99,15 @@ urlpatterns = [
         InstanceSetupLogin.as_view(),
         name="instance_admin_login",
     ),
-    # Managed GM Login, no longer needed
-    # path(
-    #     "instances/<slug:instance_slug>/gm_login/",
-    #     InstanceManagedGMLogin.as_view(),
-    #     name="managed_admin_login",
-    # ),
     path(
         "instances/<slug:instance_slug>/activate/<slug:world_id>/",
         ActivateWorld.as_view(),
         name="activate_world",
+    ),
+    path(
+        "instances/<slug:instance_slug>/deactivate/",
+        DeactivateWorld.as_view(),
+        name="deactivate_world",
     ),
     path(
         "instances/<slug:instance_slug>/thumbnail/<slug:world_id>/",

@@ -51,7 +51,6 @@ class FoundryState(Enum):
     JOIN = 4
     ACTIVE_UNKNOWN = 99
 
-
 # Map redirect url to instance state
 URL_TO_STATE = {
     "license": FoundryState.LICENSE_EULA,
@@ -254,6 +253,36 @@ class FoundryInstance(models.Model):
                     return FoundryState.ACTIVE_UNKNOWN
         else:
             return FoundryState.INACTIVE
+    
+    @property
+    def instance_state_display(self) -> str:
+        INACTIVE = 0
+        LICENSE = 1
+        LICENSE_EULA = 2
+        SETUP = 3
+        JOIN = 4
+        ACTIVE_UNKNOWN = 99
+        match self.instance_state:
+            case FoundryState.INACTIVE:
+                return "Offline"
+            case FoundryState.LICENSE:
+                return "License Check"
+            case FoundryState.LICENSE_EULA:
+                return "EULA Check"
+            case FoundryState.SETUP:
+                return "Instance Setup"
+            case FoundryState.JOIN:
+                return "World Online"
+            case _:
+                return "Processing"
+    
+    @property
+    def online_states(self):
+        return (FoundryState.SETUP, FoundryState.JOIN)
+    
+    @property
+    def processing_states(self):
+        return (FoundryState.LICENSE, FoundryState.LICENSE_EULA, FoundryState.ACTIVE_UNKNOWN)
 
     def sync_world(self, join_info=None):
         try:
@@ -712,9 +741,13 @@ class FoundryInstance(models.Model):
         else:
             return static_url("refractory/img/ActiveWorld.png")
 
+    @classmethod
+    def inactive_url(cls):
+        return static_url("refractory/img/InactiveWorld.png")
+
     @property
     def default_background_url(self) -> str:
-        return static_url("refractory/img/InactiveWorld.png")
+        return FoundryInstance.inactive_url()
 
     @property
     def version_tuple(self) -> typing.Tuple:

@@ -1,28 +1,74 @@
-{% extends '_foundry_portal_base.html' %}
 {% load i18n %}
+{% load static %}
 
-{% block title %}FoundryVTT.com Login{% endblock %}
-
-{% block notifs %}
-    {% if messages %}
-    <ul class="refractory-messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="refractory-message {{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-{% endblock %}
-
-{% block content %}{% endblock %}
-{% block sidebar-content %}
-<section class="panel sidebar">
-    <h2>Management links</h2>
-    <div><a href="{% url "foundry_site_login" %}">{% translate "FoundryVTT Account Login" %}</a></div>
-    <div><a href="{% url "license_list" %}">{% translate "Licenses" %}</a></div>
-    <div><a href="{% url "version_list" %}">{% translate "Versions" %}</a></div>
-    <div><a href="{% url "instance_list" %}">{% translate "Instances" %}</a></div>
-    <div><a href="{% url "group_list" %}">{% translate "User Groups" %}</a></div>
-    <div><a href="{% url "invite_list" %}">{% translate "Invites" %}</a></div>
-    <div><a href="{% url "admin:index" %}">{% translate "Admin Panel" %}</a></div>
-</section>
-{% endblock %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% block title %}Refractory{% endblock %}</title>
+        <link rel="stylesheet" type="text/css" href="{% static '/refractory/css/refractory.css' %}">
+        <link rel="icon" href="{% static '/refractory/img/Refractory512.png' %}" type="image/png">
+    </head>
+    <body>
+        {% block scripts %}{% endblock %}
+        {% block headerbar %}
+        <div id="loading-blocker" class="loading-blocker" hidden>
+            <img class="loading-spinner" src="{% static '/refractory/img/Refractory512.png' %}">
+        </div>
+        <div class="horiflow row-rev headerbar">
+            <form class="inline-form" action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button class="header-button" type="submit">
+                    <p>Log out</p>
+                </button>
+            </form>
+            {% if user.is_staff %}
+                <form class="inline-form" action="{% url 'instance_list' %}" method="get">
+                    {% csrf_token %}
+                    <button class="header-button" type="submit">
+                        <p>Manage</p>
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+        {% endblock %}
+        {% block logo %}
+        <div class="horiflow flexcenter">
+            <div class="vertiflow">
+                <h1 class="headertext"><a href="{% url 'panel' %}"><u>Refractory</u></a></h1>
+            </div>
+        </div>
+        {% endblock %}
+        {% block notifs %}
+            {% if messages %}
+            <ul class="refractory-messages">
+                {% for message in messages %}
+                <li{% if message.tags %} class="refractory-message {{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endblock %}
+        <div class="horiflow flexcenter fillall">
+            {% block mainbox %}
+            <div class="bigbox vertiflow">
+                {% block content %}{% endblock %}
+            </div>
+            {% endblock %}
+            {% block sidebar %}
+                <div class="bigbox vertiflow">
+                    {% block sidebar-content %}
+                        <div class="panel thin-panel">
+                            <h2>Management links</h2>
+                            <div><a href="{% url "foundry_site_login" %}">{% translate "FoundryVTT Account Login" %}</a></div>
+                            <div><a href="{% url "license_list" %}">{% translate "Licenses" %}</a></div>
+                            <div><a href="{% url "version_list" %}">{% translate "Versions" %}</a></div>
+                            <div><a href="{% url "instance_list" %}">{% translate "Instances" %}</a></div>
+                            <div><a href="{% url "group_list" %}">{% translate "User Groups" %}</a></div>
+                            <div><a href="{% url "invite_list" %}">{% translate "Invites" %}</a></div>
+                            <div><a href="{% url "admin:index" %}">{% translate "Admin Panel" %}</a></div>
+                        </div>
+                    {% endblock %}
+                </div>
+            {% endblock %}
+        </div>
+    </body>
+</html>

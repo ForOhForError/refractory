@@ -1,113 +1,109 @@
-{% extends "_foundry_portal_base.html" %}
+{% extends '_manage_base.html' %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}Refractory{% endblock %}
 
-{% block notifs %}
-    {% if messages %}
-    <ul class="refractory-messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="refractory-message {{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+{% block scripts %}
+<script>
+    function transformScroll(event) {
+        if (!event.deltaY) {
+            return;
+        }
+
+        event.currentTarget.scrollLeft += event.deltaY + event.deltaX;
+        event.preventDefault();
+    }
+
+    function asyncReloadSubmitForm(event) {
+        event.preventDefault();
+        const loader = document.getElementById('loading-blocker');
+        loader.removeAttribute("hidden");
+        let formData = new FormData(event.target);
+        fetch(event.target.action, {
+            method: "POST",
+            body: formData
+        })
+        .then((response) => {
+            window.location.reload();
+        });
+    }
+    window.addEventListener('load',function () {
+        const forms = document.querySelectorAll("form.async-reload");
+        forms.forEach((form) => {
+            form.addEventListener("submit", asyncReloadSubmitForm);
+        });
+
+        const worldscroll = document.getElementById('instance-section');
+        worldscroll.addEventListener('wheel', transformScroll);
+    });
+</script>
 {% endblock %}
 
 {% block content %}
-<script>
-function asyncReloadSubmitForm(event) {
-    event.preventDefault();
-    let formData = new FormData(event.target);
-    fetch(event.target.action, {
-        method: "POST",
-        body: formData
-    })
-    .then((response) => {
-        window.location.reload();
-    });
-}
-window.addEventListener('load',function () {
-    const forms = document.querySelectorAll("form.async-reload");
-    forms.forEach((form) => {
-        form.addEventListener("submit", asyncReloadSubmitForm);
-    });
-});
-</script>
-<!-- Active Worlds Section -->
-<section class="panel main-panel" id="active-worlds">
-    <h2>Worlds</h2>
-    <div class="worlds-gallery" id="worlds-gallery">
-        {% for instance in instances %}
-            {% for world in instance.worlds %}
-                <div class="world-card" {% if world.active %}style="background-image: url({{instance.active_background_url}})"{% else %}style="background-image: url({{instance.default_background_url}})"{% endif %}>
-                    <form class="hidden-form {% if not world.active %}async-reload{% endif %}" id="form-{{instance.instance_slug}}-{{world.id}}"
-                        {% if world.active %} 
-                            action="{{instance.user_facing_base_url}}"
-                            {# target="_blank" #}
-                            method="get"
-                        {% else %}
-                            action="{% url 'activate_world' instance.instance_slug world.id %}" 
-                            method="post"
-                        {% endif %}
-                    >
-                    {% csrf_token %}
-                    </form>
+<div id="instance-section" class="instance-section horiflow">
+    {% for instance in instances %}
+        <div class="instance-card fakebutton" name="card-{{instance.instance_slug}}">
+            <button class="hiddenbutton mainbutton" type="submit" form="form-{{instance.instance_slug}}">
+                <p>{{ instance.display_name }}</p>
+                {% if instance.instance_state in instance.online_states %}
+                    <div class="status-badge active-status"></div>
+                {% elif instance.instance_state in instance.processing_states %}
+                    <div class="status-badge warning-status"></div>
+                {% else %}
+                    <div class="status-badge"></div>
+                {% endif %}
+            </button>
+            <form class="hidden-form {% if not instance.is_active %}async-reload{% endif %}" id="form-{{instance.instance_slug}}"
+                {% if instance.is_active %} 
+                    action="{{instance.user_facing_base_url}}" 
+                    {# target="_blank" #}
+                    method="get"
+                {% else %}
+                    action="{% url 'activate_instance' instance.instance_slug %}"
+                    method="post"
+                {% endif %}
+            >
+                {% csrf_token %}
+            </form>
+        </div>
+    {% endfor %}
+</div>
+<div class="world-section horiflow">
+    {% for instance in instances %}
+        {% for world in instance.worlds %}
+            <div class="gamecard fakebutton" style="background-image: url({% url 'world_thumbnail' instance.instance_slug world.id %})">
+                <button class="hiddenbutton mainbutton" {% if world.active %}type="submit" form="form-{{instance.instance_slug}}-{{world.id}}"{% endif %}>
                     {% if world.active %}
-                        <button class="fillspace" type="submit" form="form-{{instance.instance_slug}}-{{world.id}}">
-                    {% endif %}
-                    <h3>{{world.title}}</h3>
-                    <p>Hosted on {{instance.display_name}}</p>
-                    {% if not world.active %}
-                        <button type="submit" name="Activate" form="form-{{instance.instance_slug}}-{{world.id}}"><p>Activate</p></button>
+                        <div class="status-badge active-status"></div>
+                        <div class="online-count">{{instance.active_player_count}} Online</div>
                     {% else %}
-                        <p>{% for _ in instance.active_player_range %}♟{% endfor%}</p>
+                        <div class="status-badge rotating"></div>
                     {% endif %}
-                    {% if world.active %}
-                        </button>
+                    <h3 class="card-title">{{ world.title }}</h3>
+                    <hr class="card-hr" />
+                    <p class="card-instance-line">Hosted on <b>{{ instance.display_name }}</b></p>
+                    <form class="hidden-form" id="form-{{instance.instance_slug}}-{{world.id}}" action="{{instance.user_facing_base_url}}" method="get">
+                        {% csrf_token %}
+                    </form>
+                </button>
+                <div class="horiflow gamecard-bar">
+                    {% if world.active %} 
+                        <button type="submit" form="form-{{instance.instance_slug}}-{{world.id}}-deactivate">Deactivate</button>
+                        <form class="hidden-form async-reload" id="form-{{instance.instance_slug}}-{{world.id}}-deactivate" action="{% url 'deactivate_world' instance.instance_slug %}" method="post">
+                            {% csrf_token %}
+                        </form>
+                    {% else %}
+                        <button type="submit" form="form-{{instance.instance_slug}}-{{world.id}}-activate">Activate</button>
+                        <form class="hidden-form async-reload" id="form-{{instance.instance_slug}}-{{world.id}}-activate" action="{% url 'activate_world' instance.instance_slug world.id %}" method="post">
+                            {% csrf_token %}
+                        </form>
                     {% endif %}
                 </div>
-            {% endfor %}
-        {% endfor %}
-    </div>
-</section>
-
-<!-- Instance Status Section -->
-<section class="panel sidebar" id="instance-status">
-    <h2>Instances</h2>
-    <div class="status-key">
-        <div class="status-container"><span class="status-indicator active"></span>Active</div>
-        <div class="status-container"><span class="status-indicator online"></span>Online</div>
-        <div class="status-container"><span class="status-indicator offline"></span>Offline</div>
-    </div>
-    <div class="instance-list" id="instance-list">
-        {% for instance in instances %}
-            <div class="instance-card" name="card-{{instance.instance_slug}}">
-                {% if instance.is_active %}
-                    <button class="fillspace" type="submit" form="form-{{instance.instance_slug}}">
-                {% endif %}
-                    <h3>{{ instance.display_name }}</h3>
-                    <p>{{ instance.is_active }}</p>
-                    {{ instance.instance_state }}
-                    {% if not instance.is_active %} 
-                        <button type="submit" form="form-{{instance.instance_slug}}"><p>Activate</p></button>
-                    {% endif %}
-                    <form class="hidden-form {% if not instance.is_active %}async-reload{% endif %}" id="form-{{instance.instance_slug}}"
-                        {% if instance.is_active %} 
-                            action="{{instance.user_facing_base_url}}" 
-                            {# target="_blank" #}
-                            method="get"
-                        {% else %}
-                            action="{% url 'activate_instance' instance.instance_slug %}"
-                            method="post"
-                        {% endif %}
-                    >
-                    {% csrf_token %}
-                    </form>
-                {% if instance.is_active %}
-                    </button>
-                {% endif %}
             </div>
         {% endfor %}
-    </div>
-</section>
+    {% endfor %}
+</div>
+{% endblock %}
+{% block sidebar %}
 {% endblock %}

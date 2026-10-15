@@ -990,7 +990,20 @@ class ActivateWorld(LoginRequiredMixin, View):
         try:
             instance = FoundryInstance.objects.get(instance_slug=instance_slug)
             instance.activate_world(world_id)
-            messages.info(request, _("Activating World."))
+            messages.info(request, _("Activated World."))
+        except FoundryInstance.DoesNotExist:
+            messages.error(request, _("Instance does not exist."))
+        return redirect(reverse("panel"))
+
+class DeactivateWorld(LoginRequiredMixin, View):
+    def post(self, request, *args, instance_slug="", **kwargs):
+        try:
+            instance = FoundryInstance.objects.get(instance_slug=instance_slug)
+            if not instance.has_active_players():
+                instance.deactivate_world()
+                messages.info(request, _("Deactivated World."))
+            else:
+                messages.error(request, _("Cannot deactivate world with active players."))
         except FoundryInstance.DoesNotExist:
             messages.error(request, _("Instance does not exist."))
         return redirect(reverse("panel"))
