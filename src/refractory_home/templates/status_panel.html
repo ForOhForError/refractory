@@ -72,7 +72,7 @@
 <div class="world-section horiflow">
     {% for instance in instances %}
         {% for world in instance.worlds %}
-            <div class="gamecard fakebutton" style="background-image: url({% url 'world_thumbnail' instance.instance_slug world.id %})">
+            <div class="game-card fakebutton" style="background-image: url({% url 'world_thumbnail' instance.instance_slug world.id %})">
                 <button class="hiddenbutton mainbutton" {% if world.active %}type="submit" form="form-{{instance.instance_slug}}-{{world.id}}"{% endif %}>
                     {% if world.active %}
                         <div class="status-badge active-status"></div>

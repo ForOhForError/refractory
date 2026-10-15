@@ -184,11 +184,10 @@ button:active {
     height:3em;
     aspect-ratio: 32/9;
     border: 2px solid black;
-    background-size: contain;
+    background-size: cover;
     margin: 1em;
     transition: 0.1s;
-    background-image: url('../../refractory/img/BrickBG.webp');
-    background-size: contain;
+    background-image: url('../../refractory/img/InstanceCard.png');
     padding: 0;
     align-content: center;
     justify-content: center;
@@ -199,25 +198,35 @@ button:active {
     border: 2px solid orange;
 }
 
-.gamecard {
+.game-card {
     position: relative;
     height:25vh;
     aspect-ratio: 16/9;
     border: 2px solid black;
-    background-size: contain;
+    background-size: cover;
     margin: 1em;
     transition: 0.1s;
     background-image: url('../../refractory/img/BrickBG.webp');
-    background-size: cover;
     background-position: center;
     padding: 0;
+    display: flex;
+    flex-direction: column;
 }
 
-.gamecard:hover{
+.game-card:hover{
     scale: 103%;
     border: 2px solid orange;
 }
 
+.gamecard-bar {
+    margin: 0 0.3em;
+    padding: 1em;
+    flex-grow: 1;
+}
+
+.gamecard-bar > button {
+    padding: 0.1em 0.5em;
+}
 
 .status-badge {
     position: absolute;
@@ -299,14 +308,6 @@ button:active {
     overflow: scroll;
     scrollbar-width: none;
     text-shadow: 1px 1px 4px black;
-}
-
-.gamecard-bar {
-    margin: 0 0.3em;
-}
-
-.gamecard-bar > button {
-    padding: 0.1em 0.5em;
 }
 
 .tooltip {
